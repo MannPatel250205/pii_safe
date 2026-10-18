@@ -1,0 +1,46 @@
+# Vendor, product and infrastructure words that appear Title-Case in logs and
+# are not people. A name candidate made only of these words is rejected
+# (unless an honorific like "Mr." says otherwise). Case-insensitive,
+# whitespace-separated. Extend for your environment.
+
+# --- vendors / platforms
+Microsoft Windows Azure Office Outlook Teams SharePoint OneDrive Exchange Defender Intune
+Entra Sentinel Google Gmail Chrome Android Workspace Amazon AWS Lambda Cloudflare Akamai
+Apple macOS iOS Safari Linux Ubuntu Debian Fedora CentOS RedHat Alpine Oracle Solaris
+IBM Cisco Juniper Fortinet FortiGate Palo Alto Paloalto Checkpoint Sophos Barracuda
+CrowdStrike Falcon SentinelOne Carbon Black Symantec McAfee Trellix Trend Kaspersky ESET
+Okta Duo Ping Auth0 OneLogin CyberArk Splunk Elastic Elasticsearch Kibana Logstash Beats
+Datadog Grafana Prometheus Loki NewRelic Dynatrace PagerDuty Opsgenie ServiceNow Jira
+Confluence Atlassian Bitbucket GitHub GitLab Jenkins CircleCI Travis Bamboo Argo ArgoCD
+Docker Kubernetes Helm Rancher OpenShift Terraform Ansible Puppet Chef Vagrant Consul
+Vault Nomad HashiCorp Nginx Apache Tomcat Jetty Kafka Zookeeper RabbitMQ Redis Memcached
+Postgres PostgreSQL MySQL MariaDB MongoDB Cassandra Snowflake BigQuery Redshift Databricks
+Spark Hadoop Airflow Tableau PowerBI Looker Salesforce Workday SAP Zendesk Freshdesk Slack
+Zoom Webex Dropbox Box Zscaler Netskope Proofpoint Mimecast Tenable Nessus Qualys Rapid7
+Nexpose Metasploit Burp Wireshark Nmap Snort Suricata Zeek Wazuh OSSEC Velociraptor
+Tanium Ivanti VMware vSphere ESXi Citrix Nutanix Veeam Commvault NetApp Dell HP HPE Lenovo
+Intel AMD Nvidia Qualcomm Samsung Huawei Ericsson Nokia Meta Facebook Instagram WhatsApp
+Twitter LinkedIn Stripe PayPal Visa Mastercard Shopify Twilio SendGrid Mailchimp OpenAI
+Anthropic Claude ChatGPT Gemini Copilot LangChain LangGraph Ollama HuggingFace
+Python Java JavaScript Node Golang Rust Ruby Rails Django Flask FastAPI Spring React
+Angular Vue Firefox Edge Opera Brave Mozilla Thunderbird Notepad PowerShell Bash Zsh
+Kerberos LDAP RADIUS SAML OAuth OpenID Mimikatz Cobalt Strike BloodHound Sharphound
+Emotet TrickBot Qakbot Ryuk Conti LockBit WannaCry NotPetya
+
+# --- infrastructure / ops vocabulary
+Load Balancer Firewall Gateway Proxy Router Switch Cluster Node Pod Container Service
+Instance Volume Bucket Queue Topic Stream Pipeline Workflow Runner Worker Scheduler Cron
+Job Task Backup Snapshot Replica Primary Secondary Standby Failover Probe Health Check
+Monitor Sensor Agent Collector Forwarder Indexer Dashboard Console Portal Endpoint
+Domain Controller Directory Forest Tenant Subscription Region Zone Datacenter Rack
+Vpn Dns Dhcp Ntp Smtp Imap Http Https Ssh Rdp Smb Ftp Sftp Tls Ssl Api Sdk Cli Ui
+Threat Intel Feed Indicator Signature Rule Policy Alert Incident Case Ticket Playbook
+Release Candidate Build Deploy Deployment Rollout Rollback Hotfix Patch Upgrade Update
+Production Staging Development Sandbox Test Testing Qa Uat Preview Canary Blue Green
+Cleanup Temp Files Logs Metrics Traces Events Audit Report Summary Weekly Daily Monthly
+Nightly Hourly Annual Finance Department Office Team Group Operations Center Centre Desk
+Pool Shard Partition Index Table Schema Database Server Host Client Storage Network
+Outbound Inbound Block Allow Deny Drop Quarantine Isolation Containment Remediation
+User-Agent Agent Bot Crawler Scanner Spider Payload Exploit Malware Ransomware Phishing
+Brute Force Credential Stuffing Lateral Movement Exfiltration Persistence Privilege
+Escalation Reconnaissance Possible Suspicious Potential Malicious Anomalous Unusual

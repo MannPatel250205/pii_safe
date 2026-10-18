@@ -1,0 +1,10 @@
+# Given names that are also common words. They still count as names when
+# capitalised in a name context, but are never matched in lower case.
+will mark bill grace hope joy may june april august rose lily art sky rich frank chase
+hunter page dawn faith iris ivy jack ray rob sue pat bob bo can dean gene guy jay
+jo joe kim lane lee long lou max mo nick ok pam ruby sage storm summer tom van
+wade al angel chance cliff crystal destiny don earl ernest glen hal holly jean
+lance major melody miles norm penny pearl rocky rusty shad sol star stone sunny
+tanner tina victor violet win woody young ali dev om neel hari ravi kiran asha
+li yi bo lan lin yu kai hao fang ming hua jun jie long tao an minh duc
+mann maya noa nur sara sana hina rana mona lina hana sam ben dan tim ted ed meg

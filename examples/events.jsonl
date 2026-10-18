@@ -1,0 +1,4 @@
+{"ts": "2024-03-12T09:00:01Z", "event": "login_failed", "user": "raj.mehta@corp.com", "src_ip": "192.168.1.45", "msg": "Raj failed MFA"}
+{"ts": "2024-03-12T09:02:11Z", "event": "login_ok", "username": "kperera", "src_ip": "10.20.30.40", "full_name": "Kavishka Perera", "phone": 4155550132}
+{"ts": "2024-03-12T09:03:00Z", "event": "password_reset", "user": "rmehta", "meta": {"approver": "Kavihska Perera", "client_ip": "192.168.1.45"}}
+not json: Raj accessed 192.168.1.67

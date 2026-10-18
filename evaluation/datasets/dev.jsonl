@@ -1,0 +1,44 @@
+{"text": "2024-03-12 09:00 raj.mehta@corp.com accessed 192.168.1.45 — FAILED_LOGIN", "entities": [{"type": "EMAIL_ADDRESS", "value": "raj.mehta@corp.com"}, {"type": "IP_ADDRESS", "value": "192.168.1.45"}]}
+{"text": "Mar 12 09:10:03 bastion sshd[2231]: Failed password for invalid user oracle from 10.20.30.40 port 22 ssh2", "entities": [{"type": "USERNAME", "value": "oracle"}, {"type": "IP_ADDRESS", "value": "10.20.30.40"}]}
+{"text": "Mar 12 09:11:15 bastion sshd[2240]: Accepted publickey for rmehta from 10.20.30.41 port 51022 ssh2", "entities": [{"type": "USERNAME", "value": "rmehta"}, {"type": "IP_ADDRESS", "value": "10.20.30.41"}]}
+{"text": "src=172.16.4.20 dst=8.8.8.8 proto=UDP dport=53 action=allow", "entities": [{"type": "IP_ADDRESS", "value": "172.16.4.20"}, {"type": "IP_ADDRESS", "value": "8.8.8.8"}]}
+{"text": "user=kperera@acme.io role=admin mfa=true", "entities": [{"type": "EMAIL_ADDRESS", "value": "kperera@acme.io"}]}
+{"text": "login ok username=jdoe from fe80::1ff:fe23:4567:890a", "entities": [{"type": "USERNAME", "value": "jdoe"}, {"type": "IP_ADDRESS", "value": "fe80::1ff:fe23:4567:890a"}]}
+{"text": "DHCPACK on 10.0.5.77 to 3c:22:fb:12:9a:01 (LAPTOP-JD) via eth0", "entities": [{"type": "IP_ADDRESS", "value": "10.0.5.77"}, {"type": "MAC_ADDRESS", "value": "3c:22:fb:12:9a:01"}]}
+{"text": "CORP\\asharma logged on to fs01.corp.local", "entities": [{"type": "USERNAME", "value": "asharma"}, {"type": "HOSTNAME", "value": "fs01.corp.local"}]}
+{"text": "payment failed card=5500 0000 0000 0004 amount=12.00", "entities": [{"type": "CREDIT_CARD", "value": "5500 0000 0000 0004"}]}
+{"text": "customer SSN 078-05-1120 on file", "entities": [{"type": "US_SSN", "value": "078-05-1120"}]}
+{"text": "export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE", "entities": [{"type": "SECRET", "value": "AKIAIOSFODNN7EXAMPLE"}]}
+{"text": "curl -H 'Authorization: Bearer ghp_16C7e42F292c6912E7710c838347Ae178B4a' https://api", "entities": [{"type": "SECRET", "value": "ghp_16C7e42F292c6912E7710c838347Ae178B4a"}]}
+{"text": "db url postgres://svc_app:S3cr3tPass@db.internal:5432/app", "entities": [{"type": "USERNAME", "value": "svc_app"}, {"type": "SECRET", "value": "S3cr3tPass"}, {"type": "HOSTNAME", "value": "db.internal"}]}
+{"text": "SMS sent to +44 7700 900123 for OTP", "entities": [{"type": "PHONE_NUMBER", "value": "+44 7700 900123"}]}
+{"text": "callback number (415) 555-0199 requested", "entities": [{"type": "PHONE_NUMBER", "value": "(415) 555-0199"}]}
+{"text": "GET /reset?email=priya.sharma%40corp.com HTTP/1.1 302", "entities": [{"type": "EMAIL_ADDRESS", "value": "priya.sharma%40corp.com"}]}
+{"text": "wire to DE89 3704 0044 0532 0130 00 approved", "entities": [{"type": "IBAN_CODE", "value": "DE89 3704 0044 0532 0130 00"}]}
+{"text": "Raj flagged by the security system", "entities": [{"type": "PERSON", "value": "Raj"}]}
+{"text": "Ticket assigned to Priya Sharma by the SOC lead", "entities": [{"type": "PERSON", "value": "Priya Sharma"}]}
+{"text": "Kavishka Perera approved the firewall change", "entities": [{"type": "PERSON", "value": "Kavishka Perera"}]}
+{"text": "Escalated by Michael O'Brien after review", "entities": [{"type": "PERSON", "value": "Michael O'Brien"}]}
+{"text": "Please contact Dr. Alice Brown regarding the incident", "entities": [{"type": "PERSON", "value": "Alice Brown"}]}
+{"text": "Meeting with John and Sarah about the breach", "entities": [{"type": "PERSON", "value": "John"}, {"type": "PERSON", "value": "Sarah"}]}
+{"text": "The laptop belonging to Wei Chen was reimaged", "entities": [{"type": "PERSON", "value": "Wei Chen"}]}
+{"text": "Fatima reported a phishing email from an external sender", "entities": [{"type": "PERSON", "value": "Fatima"}]}
+{"text": "hi team, carlos garcia will take over the case", "entities": [{"type": "PERSON", "value": "carlos garcia"}]}
+{"text": "Analyst notes: Olga Ivanova confirmed the IOC", "entities": [{"type": "PERSON", "value": "Olga Ivanova"}]}
+{"text": "Kenji Sato's account was locked", "entities": [{"type": "PERSON", "value": "Kenji Sato"}]}
+{"text": "2024-03-12T09:21:00Z healthcheck ok node=web-3 latency=12ms", "entities": []}
+{"text": "Service nginx restarted successfully after config reload", "entities": []}
+{"text": "ERROR Connection refused while contacting upstream at port 8443", "entities": []}
+{"text": "Windows Defender updated signatures to version 1.403.2.0", "entities": []}
+{"text": "Build 20240312.4 deployed to Production by Jenkins pipeline", "entities": []}
+{"text": "Kubernetes pod api-7d9f8c6b5-x2x9z OOMKilled in namespace Payments", "entities": []}
+{"text": "Rule ET POLICY Suspicious User-Agent triggered 14 times", "entities": []}
+{"text": "Scheduled Task Weekly Backup completed in 342 seconds", "entities": []}
+{"text": "New York office VPN gateway CPU at 91 percent", "entities": []}
+{"text": "sha256=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 matched", "entities": []}
+{"text": "Order 1234567890123 shipped via UPS tracking 1Z999AA10123456784", "entities": []}
+{"text": "Chrome 122.0.6261.95 on macOS 14.3 detected", "entities": []}
+{"text": "Microsoft Teams meeting started by the Security Operations Center", "entities": []}
+{"text": "Alert: Possible Brute Force Attack detected on Domain Controller", "entities": []}
+{"text": "Patch Tuesday updates applied to 240 Servers", "entities": []}
+{"text": "session_id=7f3a9c2e1b4d timeout=300 retries=3", "entities": []}

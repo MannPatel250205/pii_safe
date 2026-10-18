@@ -1,0 +1,96 @@
+# Common given names, multicultural. Used as corroborating evidence for weak
+# name rules and for lower-case name detection. Lines starting with # are
+# comments; names are whitespace-separated, case-insensitive.
+# Extend freely — see docs/DESIGN.md "Name and product lists".
+
+# --- English / Anglo
+James John Robert Michael William David Richard Joseph Thomas Charles Christopher Daniel
+Matthew Anthony Mark Donald Steven Paul Andrew Joshua Kenneth Kevin Brian George Timothy
+Ronald Edward Jason Jeffrey Ryan Jacob Gary Nicholas Eric Jonathan Stephen Larry Justin
+Scott Brandon Benjamin Samuel Gregory Alexander Patrick Frank Raymond Jack Dennis Jerry
+Tyler Aaron Jose Adam Nathan Henry Douglas Zachary Peter Kyle Noah Ethan Jeremy Walter
+Christian Keith Roger Terry Austin Sean Gerald Carl Harold Dylan Arthur Lawrence Jordan
+Jesse Bryan Billy Bruce Gabriel Joe Logan Alan Juan Albert Willie Elijah Wayne Randy
+Vincent Mason Roy Ralph Bobby Russell Bradley Philip Eugene Liam Oliver Lucas Owen Caleb
+Isaac Luke Connor Hunter Ian Evan Aiden Jayden Carter Wyatt Leo Julian Hudson Nolan
+Mary Patricia Jennifer Linda Elizabeth Barbara Susan Jessica Sarah Karen Lisa Nancy Betty
+Sandra Margaret Ashley Kimberly Emily Donna Michelle Carol Amanda Melissa Deborah Stephanie
+Dorothy Rebecca Sharon Laura Cynthia Amy Kathleen Angela Shirley Brenda Emma Anna Pamela
+Nicole Samantha Katherine Christine Helen Debra Rachel Carolyn Janet Maria Catherine
+Heather Diane Olivia Julie Joyce Victoria Ruth Virginia Lauren Kelly Christina Joan
+Evelyn Judith Andrea Hannah Megan Cheryl Jacqueline Martha Madison Teresa Gloria Sara
+Janice Ann Kathryn Abigail Sophia Frances Jean Alice Judy Isabella Julia Denise Amber
+Doris Marilyn Danielle Beverly Theresa Diana Natalie Brittany Charlotte Marie Kayla Alexis
+Lori Ava Mia Harper Ella Chloe Zoe Aria Scarlett Layla Nora Riley Aubrey Claire Lucy
+Alicia Michael Micheal Jon Jim Tom Tim Ben Sam Dan Dave Mike Steve Chris Matt Nick Tony
+Rick Rob Bob Bill Ted Ed Joe Sue Kate Liz Beth Jen Meg Becky Katie Kim Pam Deb
+
+# --- German / Dutch / Nordic / French / Italian / Iberian
+Hans Klaus Jurgen Stefan Wolfgang Andreas Matthias Tobias Florian Lukas Felix Maximilian
+Sebastian Johannes Moritz Niklas Jonas Leon Finn Paul Anja Katrin Sabine Ursula Petra
+Monika Claudia Birgit Heike Julia Lena Lea Leonie Hannah Greta Frieda Ingrid Astrid
+Sven Lars Erik Nils Magnus Olaf Bjorn Gustav Henrik Anders Mikael Johan Freya Sigrid
+Pieter Jan Daan Bram Sanne Femke Lotte Thijs Ruben Joost Maarten Willem Anouk
+Jean Pierre Jacques Michel Philippe Alain Nicolas Francois Laurent Julien Antoine Louis
+Mathieu Thibault Camille Chloe Manon Juliette Amelie Celine Sophie Nathalie Isabelle
+Marco Giuseppe Giovanni Antonio Francesco Alessandro Luca Matteo Lorenzo Andrea Davide
+Federico Riccardo Stefano Paolo Giulia Francesca Chiara Federica Valentina Alessia Elena
+Carlos Miguel Javier Alejandro Diego Pablo Sergio Jorge Manuel Fernando Rafael Andres
+Mateo Santiago Sebastian Nicolas Emilio Ricardo Eduardo Raul Ramon Luis Pedro Joao
+Tiago Rodrigo Goncalo Lucia Sofia Valeria Camila Isabel Carmen Pilar Rosa Ana Ines
+Beatriz Mariana Gabriela Daniela Fernanda Paula Marta Clara Alba Diego Hernandez Laura
+
+# --- Slavic / Baltic / Greek / Turkish
+Ivan Dmitri Dmitry Sergei Alexei Andrei Mikhail Nikolai Vladimir Yuri Igor Oleg Pavel
+Anatoly Boris Viktor Maxim Artem Kirill Natasha Olga Svetlana Tatiana Irina Elena Anastasia
+Ekaterina Yulia Ksenia Daria Polina Piotr Pawel Krzysztof Tomasz Marek Jakub Michal
+Agnieszka Katarzyna Malgorzata Joanna Magdalena Zofia Ondrej Jiri Petr Tereza Lucie
+Nikos Giorgos Dimitris Yannis Eleni Maria Katerina Mehmet Mustafa Ahmet Ali Emre Murat
+Burak Can Elif Zeynep Ayse Fatma Merve Esra Selin
+
+# --- South Asian
+Raj Raju Rajesh Ramesh Suresh Mahesh Ganesh Dinesh Rakesh Mukesh Naresh Rajiv Sanjay
+Vijay Ajay Amit Sumit Rohit Mohit Ankit Arjun Arun Varun Karan Rahul Vikram Vikas Vivek
+Anil Sunil Manoj Ravi Kiran Deepak Pradeep Sandeep Rajeev Sachin Nikhil Akhil Abhishek
+Aditya Ashish Gaurav Harsh Kunal Manish Naveen Pankaj Prakash Prashant Rohan Saurabh
+Siddharth Tarun Uday Yash Aarav Vihaan Ishaan Reyansh Krishna Shiva Hari Gopal Mohan
+Arvind Ashok Anand Venkat Srinivas Murali Balaji Karthik Senthil Kumar Mann Manav Parth
+Dhruv Jay Neel Om Dev Kabir Ayaan Priya Pooja Neha Anjali Divya Kavya Shreya Sneha Swati
+Ritu Nisha Asha Meera Lakshmi Sunita Anita Kavita Geeta Seema Rekha Rani Radha Sita Gita
+Aarti Ananya Aditi Isha Riya Tanvi Sakshi Shruti Nidhi Payal Komal Monika Deepika Preeti
+Jyoti Archana Vandana Bhavna Sonal Hetal Krupa Khushi Diya Saanvi Aanya Myra Kiara Avni
+Kavishka Kavitha Nimal Kamal Sunil Chaminda Nuwan Dilshan Tharindu Kasun Ishara Dilani
+Nadeesha Sachini Hasini Imran Faisal Bilal Usman Hamza Zain Ayesha Fatima Sana Hina
+Rabia Nasir Tariq Farhan Sameer Shahid Arif Salman Aamir Rizwan Sabir
+
+# --- East / Southeast Asian (romanised)
+Wei Wang Li Zhang Liu Chen Yang Huang Zhao Wu Zhou Jun Jie Hao Ming Lei Tao Yan Xin
+Yi Ying Mei Lan Hua Fang Jing Ling Xiu Qing Hui Yu Bo Feng Gang Peng Qiang Kai Lin
+Haruto Yuto Sota Yuki Hiroshi Takeshi Kenji Kenta Daiki Ryota Shota Kazuki Takumi
+Satoshi Akira Yuko Yui Aoi Sakura Hina Haruka Misaki Naoko Keiko Yoko Emi Kenzo Taro
+Minjun Seojun Jiho Jiwoo Hyun Jisoo Minji Seoyeon Jiyeon Eunji Soyeon Yuna Hyejin
+Nguyen Tran Minh Anh Linh Huong Thao Trang Duc Hung Tuan Quang Long Phuong Lan
+Somchai Somsak Nattapong Siriporn Malee Budi Agus Siti Dewi Putri Rizky Andi Nur
+Jose Mark Joy Grace Angel Rhea Jasmine Cristina
+
+# --- Arabic / Persian / Hebrew
+Mohammed Muhammad Ahmed Ahmad Mahmoud Mustafa Omar Khaled Khalid Hassan Hussein Hussain
+Youssef Yusuf Ibrahim Ismail Abdullah Abdul Karim Rashid Saeed Samir Tarek Walid Ziad
+Faris Nabil Adel Amir Hamid Reza Ali Mehdi Hossein Arash Dariush Kian Navid Parisa
+Fatima Aisha Aysha Mariam Maryam Layla Leila Nour Noor Huda Salma Yasmin Amira Rania
+Dina Hala Lina Mona Rana Zainab Zahra Shirin Nasrin Roya Sara Avi David Yosef Moshe
+Eitan Noam Ori Yael Noa Tamar Shira Maya Talia Dana
+
+# --- African
+Kwame Kofi Kojo Kwabena Yaw Ama Akosua Abena Adwoa Efua Chidi Chukwuemeka Emeka Obinna
+Ikenna Nnamdi Ngozi Chiamaka Adaeze Amaka Chioma Oluwaseun Olumide Tunde Ayodele Femi
+Funmilayo Folake Bukola Yetunde Abiodun Babatunde Segun Kemi Musa Ibrahim Abubakar Aminu
+Halima Hauwa Zainab Amina Thabo Sipho Themba Mandla Lerato Thandiwe Nomvula Zanele
+Naledi Palesa Kagiso Tshepo Bongani Sizwe Juma Baraka Wanjiru Wambui Njeri Akinyi Achieng
+Otieno Kamau Mwangi Kipchoge Abebe Tesfaye Haile Mekdes Selam Hana Tigist Yohannes
+
+# --- Latin America / Portuguese / Caribbean
+Thiago Gustavo Felipe Leonardo Vinicius Bruno Caio Renato Marcelo Fabio Leandro Rodrigo
+Larissa Leticia Bruna Juliana Vanessa Aline Priscila Carla Adriana Patricia Renata
+Alejandra Ximena Guadalupe Lupita Yesenia Marisol Esperanza Dolores Ignacio Joaquin
+Agustin Benjamin Tomas Facundo Martina Florencia Micaela Agustina Rocio Milagros

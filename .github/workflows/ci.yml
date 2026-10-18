@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      # server + agents extras: without them the FastAPI, LangChain, LangGraph
+      # and MCP tests silently skip.
+      - run: pip install -e ".[dev,server,agents]"
+      - run: ruff check src tests
+      - run: mypy src
+      - run: pytest
+      - run: piisafe scan examples/security.log --fail-over 101
+      # Smoke test only: run_eval.py reports precision/recall but always exits 0.
+      - run: python evaluation/run_eval.py
+        if: matrix.python == '3.12'
+
+  # Postgres, KMS and cross-writer tests. One version is enough: they exercise
+  # the backends, not the language.
+  backends:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: piisafe
+          POSTGRES_PASSWORD: piisafe
+          POSTGRES_DB: piisafe_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U piisafe -d piisafe_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install -e ".[dev,server,postgres,aws]" moto
+      - run: pytest tests/integration/test_backends.py tests/integration/test_server.py
+        env:
+          PIISAFE_TEST_DATABASE_URL: postgresql://piisafe:piisafe@127.0.0.1:5432/piisafe_test

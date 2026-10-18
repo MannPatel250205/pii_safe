@@ -1,0 +1,39 @@
+# PII-Safe dashboard + REST API with PostgreSQL.
+#   cp .env.example .env          # set POSTGRES_PASSWORD (and key provider settings)
+#   docker compose up -d
+#   docker compose logs piisafe   # the one-time admin API key is printed on first start
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: piisafe
+      POSTGRES_DB: piisafe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U piisafe -d piisafe"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  piisafe:
+    build: .
+    image: piisafe:0.1.0
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env               # key provider settings (KMS / Vault / PIISAFE_MASTER_KEY)
+        required: false
+    environment:
+      PIISAFE_DATABASE_URL: postgresql://piisafe:${POSTGRES_PASSWORD}@db:5432/piisafe
+    ports:
+      - "127.0.0.1:8765:8765"   # put an HTTPS reverse proxy in front before exposing further
+    volumes:
+      - piisafe-data:/data      # local master key (provider "local") and file outputs
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+  piisafe-data:

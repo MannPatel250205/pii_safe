@@ -1,0 +1,124 @@
+# PII-Safe policy file.
+# Copy it with `piisafe init` and edit. Validate with `piisafe policy validate <file>`.
+#
+# Actions: allow | pseudonymise | redact | mask | block
+#   pseudonymise -> stable typed alias (USER_001), consistent across the session
+#   redact       -> "[EMAIL_ADDRESS]" (see settings.redaction_format)
+#   mask         -> partial, e.g. r***@corp.com, ****-****-****-1111, 192.168.*.*
+#   block        -> refuse: SDK raises PolicyBlockError, CLI aborts (see --on-block)
+
+version: '1.0'
+default_action: pseudonymise
+
+settings:
+  phone_regions: [US, IN, GB]   # regions used to parse numbers written without +country
+  ner: auto                     # auto | spacy | heuristic | off
+  spacy_model: en_core_web_sm
+  min_ner_score: 0.5
+  ner_types: [PERSON]           # add ORGANIZATION / LOCATION for prose; on logs they are mostly noise
+  decode_encoded: true          # look inside base64 / hex / %-encoded tokens
+  redaction_format: "[{type}]"
+  mask_char: "*"
+
+resolution:
+  merge_threshold: 0.80         # score >= this -> MERGE into existing alias
+  new_entity_threshold: 0.65    # score <  this -> NEW_ENTITY; in between -> DEFERRED
+  min_fuzzy_length: 5           # names shorter than this never fuzzy-merge (Raj/Raju)
+  link_identities: true         # link 'Raj Mehta' <-> raj.mehta@corp.com in the registry
+
+# Override alias prefixes (counters are per prefix).
+aliases:
+  PERSON: USER
+  EMAIL_ADDRESS: MAIL
+  IP_ADDRESS: HOST
+
+# Values that are never treated as PII.
+allowlist:
+  values: [127.0.0.1, 0.0.0.0, 255.255.255.255, "::1", "::", localhost,
+           root, admin, administrator, system, nobody, daemon, www-data, guest, anonymous]
+  patterns: []
+
+# Organisation-specific identifiers.
+custom_patterns:
+  - name: employee_id
+    entity_type: EMPLOYEE_ID
+    regex: '\bEMP-?\d{4,8}\b'
+    score: 0.95
+    alias: EMP
+
+# Turn detection on/off per type.
+entities:
+  ORGANIZATION: true
+  LOCATION: true
+
+# Structured input (JSON / JSONL / CSV): a field name implies the entity type,
+# so `{"src_ip": "..."}` is protected even if the value looks unusual.
+# Matching uses the whole key or its last part (src_ip -> ip, userEmail -> email).
+field_hints:
+  email: EMAIL_ADDRESS
+  mail: EMAIL_ADDRESS
+  ip: IP_ADDRESS
+  ipaddr: IP_ADDRESS
+  ip_address: IP_ADDRESS
+  phone: PHONE_NUMBER
+  mobile: PHONE_NUMBER
+  username: USERNAME
+  user: USERNAME
+  login: USERNAME
+  full_name: PERSON
+  first_name: PERSON
+  last_name: PERSON
+  display_name: PERSON
+  hostname: HOSTNAME
+  password: SECRET
+  token: SECRET
+  secret: SECRET
+  ssn: US_SSN
+  city: LOCATION
+  address: LOCATION
+  street: LOCATION
+
+policies:
+  - name: internal_analysis
+    hook_type: on_prompt
+    rules:
+      - entity_type: [SECRET, CREDIT_CARD, US_SSN, IBAN_CODE]
+        action: redact
+      - entity_type: '*'
+        action: pseudonymise
+
+  - name: rag_context
+    hook_type: on_context
+    rules:
+      - entity_type: [SECRET, CREDIT_CARD, US_SSN, IBAN_CODE]
+        action: redact
+      - entity_type: '*'
+        action: pseudonymise
+
+  - name: tool_guard
+    hook_type: on_tool_call
+    rules:
+      - entity_type: SECRET
+        action: block
+      - entity_type: [CREDIT_CARD, US_SSN, IBAN_CODE]
+        action: redact
+      - entity_type: IP_ADDRESS
+        action: redact
+
+  - name: memory_guard
+    hook_type: on_memory
+    rules:
+      - entity_type: [EMAIL_ADDRESS, SECRET, CREDIT_CARD, US_SSN]
+        action: block
+      - entity_type: IBAN_CODE
+        action: redact
+
+  - name: external_export
+    hook_type: export
+    rules:
+      - entity_type: [EMAIL_ADDRESS, SECRET]
+        action: block
+      - entity_type: [CREDIT_CARD, PHONE_NUMBER]
+        action: mask
+      - entity_type: '*'
+        action: redact

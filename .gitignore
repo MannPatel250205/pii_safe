@@ -1,0 +1,26 @@
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+dist/
+# local PII-Safe state (never commit keys or registries)
+.env
+.env.*
+!.env.example
+.piisafe/
+master.key
+*.db
+*.db-wal
+*.db-shm
+# sanitiser outputs from local experiments
+*.clean.*
+report*.json
+# editor / tooling local state
+.claude/settings.local.json
+.idea/
+.vscode/
+.DS_Store

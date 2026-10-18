@@ -1,0 +1,13 @@
+2024-03-12 09:00:01 raj.mehta@corp.com accessed 192.168.1.45 — FAILED_LOGIN
+2024-03-12 09:05:12 Raj flagged by the security system
+2024-03-12 09:07:40 Raju accessed 192.168.1.67 — SUCCESS
+2024-03-12 09:10:03 sshd[2231]: Failed password for invalid user oracle from 10.20.30.40 port 22 ssh2
+2024-03-12 09:11:15 sshd[2240]: Accepted publickey for rmehta from 10.20.30.40 port 51022 ssh2
+2024-03-12 09:12:00 Kavishka logged in from 192.168.1.45 using badge EMP-00421
+2024-03-12 09:14:31 Kavihska approved the request for 192.168.1.45
+2024-03-12 09:15:02 GET /api/v1/users?email=priya.sharma%40corp.com&api_key=sk_live_51HxQ2abcdef12345 HTTP/1.1 200
+2024-03-12 09:16:45 CORP\jsmith logged on to ws-042.corp.local (MAC 00:1A:2B:3C:4D:5E) via 2001:db8::8a2e:370:7334
+2024-03-12 09:18:09 Ticket INC-4411: contact Dr. Alice Brown at +1 415-555-0132, card on file 4111 1111 1111 1111
+2024-03-12 09:19:30 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJyYWoifQ.c2lnbmF0dXJlLXZhbHVl
+2024-03-12 09:20:00 export job payload=cmFqLm1laHRhQGNvcnAuY29t queued by kavishka
+2024-03-12 09:21:00 healthcheck ok node=web-3 latency=12ms from 127.0.0.1
