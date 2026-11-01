@@ -43,16 +43,15 @@ langchain = ["langchain-core>=0.3"]
 langgraph = ["langgraph>=0.2", "langchain-core>=0.3"]
 mcp = ["mcp>=1.2"]
 agents = ["piisafe[langchain,langgraph,mcp]"]
-dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "types-PyYAML", "httpx>=0.27"]
+dev = ["pytest>=8", "ruff>=0.5", "mypy>=1.10", "types-PyYAML", "httpx>=0.27", "pre-commit>=3.7"]
 
 [project.scripts]
 piisafe = "piisafe.cli:main"
 
-# TODO: fill in once the repo is pushed, then uncomment.
-# [project.urls]
-# Homepage = "https://github.com/<you>/piisafe"
-# Documentation = "https://github.com/<you>/piisafe#readme"
-# Issues = "https://github.com/<you>/piisafe/issues"
+[project.urls]
+Homepage = "https://github.com/MannPatel250205/pii_safe"
+Documentation = "https://github.com/MannPatel250205/pii_safe#readme"
+Issues = "https://github.com/MannPatel250205/pii_safe/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "piisafe._version.__version__" }
@@ -80,4 +79,11 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 
 [tool.mypy]
 python_version = "3.10"
+strict = true
+# Optional extras (spacy, boto3, mcp, psycopg) ship without stubs; without this
+# every optional backend would need a per-module override.
 ignore_missing_imports = true
+# NOTE: strict mode needs the full dev install — `pip install -e ".[dev,server,agents]"`,
+# the same set CI uses. With the server/agent extras missing, FastAPI and LangChain
+# decorators degrade to Any and strict reports them as untyped.
+files = ["src"]

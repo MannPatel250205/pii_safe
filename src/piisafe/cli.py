@@ -26,7 +26,7 @@ import time
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
-from typing import Any, TextIO
+from typing import Any, Literal, TextIO, overload
 
 from rich.console import Console
 from rich.panel import Panel
@@ -42,7 +42,7 @@ from piisafe.models import Finding
 from piisafe.normalize import normalize_text
 from piisafe.policy import KNOWN_HOOKS, Policy
 from piisafe.runs import record_run
-from piisafe.storage import database_url, describe, open_store
+from piisafe.storage import SQLStore, database_url, describe, open_store
 
 EXIT_OK, EXIT_ERROR, EXIT_USAGE, EXIT_BLOCKED, EXIT_RISK = 0, 1, 2, 3, 4
 _ACTION_SHORT = {"pseudonymise": "pseudo", "allow": "allow", "redact": "redact", "mask": "mask", "block": "block"}
@@ -98,14 +98,26 @@ def _atomic_output(path: str | None) -> Iterator[TextIO]:
 
 def _read_key(a: argparse.Namespace) -> str | None:
     if getattr(a, "key", None):
-        return a.key
+        return str(a.key)
     if getattr(a, "key_file", None):
         return Path(a.key_file).read_text().strip()
     return None
 
 
-def _open_db(a: argparse.Namespace, must_exist: bool = True):  # noqa: ANN202
-    """Open the configured database, or None if it is local SQLite and was never created."""
+@overload
+def _open_db(a: argparse.Namespace, must_exist: Literal[True] = ...) -> SQLStore | None: ...
+
+
+@overload
+def _open_db(a: argparse.Namespace, must_exist: Literal[False]) -> SQLStore: ...
+
+
+def _open_db(a: argparse.Namespace, must_exist: bool = True) -> SQLStore | None:
+    """Open the configured database.
+
+    Returns None only when ``must_exist`` and the local SQLite file was never
+    created; with ``must_exist=False`` the store is created, so it is never None.
+    """
     url = database_url(getattr(a, "database_url", None))
     if url is None and must_exist and not (_state_dir(a) / DB_FILE).exists():
         return None
@@ -887,7 +899,7 @@ def main(argv: list[str] | None = None) -> int:
     if getattr(a, "input_opt", None):  # `--input x` spelling from the proposal
         a.input = a.input_opt
     try:
-        return a.func(a)
+        return int(a.func(a))
     except PIISafeError as exc:
         err.print(f"[red]error:[/] {exc}")
         return EXIT_ERROR

@@ -135,7 +135,8 @@ class VaultTransitProvider:
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers=headers, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=10, context=self._ssl) as resp:
-                return json.loads(resp.read())["data"]
+                data: dict[str, Any] = json.loads(resp.read())["data"]
+                return data
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode(errors="replace")[:200]
             raise KeyProviderError(f"vault-transit {op} failed: HTTP {exc.code} {detail}") from exc
@@ -143,7 +144,7 @@ class VaultTransitProvider:
             raise KeyProviderError(f"vault-transit {op} failed: {exc}") from exc
 
     def wrap(self, plaintext: bytes) -> str:
-        return self._post("encrypt", {"plaintext": base64.b64encode(plaintext).decode()})["ciphertext"]
+        return str(self._post("encrypt", {"plaintext": base64.b64encode(plaintext).decode()})["ciphertext"])
 
     def unwrap(self, wrapped: str) -> bytes:
         return base64.b64decode(self._post("decrypt", {"ciphertext": wrapped})["plaintext"])

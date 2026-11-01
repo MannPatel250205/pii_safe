@@ -8,14 +8,20 @@ import threading
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 from piisafe.storage.sql import SCHEMA, SQLStore
 
+# typeshed marks fcntl unix-only, so on Windows mypy sees no module at all.
+# Binding it as an optional module keeps this file type-clean on both platforms.
+fcntl: ModuleType | None
 try:
-    import fcntl
+    import fcntl as _fcntl
 except ImportError:  # pragma: no cover - Windows: in-process locking only
-    fcntl = None  # type: ignore[assignment]
+    fcntl = None
+else:  # pragma: no cover - POSIX
+    fcntl = _fcntl
 
 _MEMORY_LOCKS: dict[str, threading.RLock] = {}
 _MEMORY_MUTEX = threading.Lock()

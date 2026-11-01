@@ -13,6 +13,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Whitespace, line endings, and the "no keys or session DBs in the repo" guard.
+  # mypy is skipped here: it needs the full install and the test job runs it.
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: mypy
+
   test:
     runs-on: ubuntu-latest
     strategy:

@@ -185,7 +185,7 @@ function textPane(ctx) {
       }
       const v = opts.values();
       const r = await api("/api/sanitize", { method: "POST", body: { text, ...v, on_block: v.on_block } });
-      put(result, 
+      put(result,
         riskTiles(r.findings.length, r.risk_score, r.residual_risk,
           kpi("Session", h("a", { href: `#/sessions/${encodeURIComponent(r.session_id)}` }, r.session_id), `${r.latency_ms} ms`)),
         card([h("h2", null, "Sanitised output"), h("button", { class: "btn sm", onclick: async () => {
@@ -263,7 +263,7 @@ function filePane(ctx) {
     try {
       const r = await upload("/api/sanitize/file", form, (p) => fill.style.setProperty("width", `${Math.round(p * 100)}%`));
       const sm = r.summary;
-      put(result, 
+      put(result,
         riskTiles(sm.findings, sm.risk.max_record_exposure, sm.risk.max_residual_exposure,
           kpi("Records", num(sm.records), `${num(sm.records_with_pii)} with PII · ${r.duration_s}s`)),
         sm.deferred.length ? h("div", { class: "callout warn" }, `${sm.deferred.length} ambiguous name match(es) were kept apart. `,

@@ -121,12 +121,12 @@ def restore_value(guard: PIISafeGuard, value: Any) -> Any:
 # ================================================================== runnables
 
 
-def sanitize_runnable(guard: PIISafeGuard, hook: str = "on_prompt") -> RunnableLambda:
+def sanitize_runnable(guard: PIISafeGuard, hook: str = "on_prompt") -> RunnableLambda[Any, Any]:
     """A Runnable that sanitises its input. Put it first in a chain: `sanitize_runnable(g) | prompt | llm`."""
     return RunnableLambda(lambda value: sanitize_value(guard, value, hook), name="piisafe_sanitize")
 
 
-def restore_runnable(guard: PIISafeGuard) -> RunnableLambda:
+def restore_runnable(guard: PIISafeGuard) -> RunnableLambda[Any, Any]:
     """A Runnable that restores aliases in its input. Put it last, after the output parser."""
     return RunnableLambda(lambda value: restore_value(guard, value), name="piisafe_restore")
 

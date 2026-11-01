@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 import uuid
+from typing import Any
 
 from piisafe.storage.sql import SQLStore
 
@@ -36,7 +37,7 @@ def create_api_key(store: SQLStore, name: str, role: str) -> tuple[str, str]:
     return key_id, key
 
 
-def authenticate(store: SQLStore, key: str) -> dict | None:
+def authenticate(store: SQLStore, key: str) -> dict[str, Any] | None:
     if not key.startswith(KEY_PREFIX):
         return None
     return store.find_api_key(hash_key(key))

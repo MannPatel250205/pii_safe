@@ -7,6 +7,7 @@ with the session key; lookups go through keyed fingerprints.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 from piisafe import entities as E
 from piisafe.crypto import SessionCrypto
@@ -52,7 +53,7 @@ class SessionRegistry:
             assert sess is not None
         self.load(sess)
 
-    def load(self, sess: dict | None = None) -> None:
+    def load(self, sess: dict[str, Any] | None = None) -> None:
         """(Re)load the session from the store — after another process changed it."""
         sess = sess or self.store.get_session(self.session_id)
         if sess is None:
