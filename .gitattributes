@@ -1,0 +1,13 @@
+# One line-ending convention across Mann (Windows) and Raj (Linux/macOS), so
+# diffs stay readable and the mixed-line-ending hook has nothing to fight.
+* text=auto eol=lf
+
+# Binary / generated: never touch.
+*.png binary
+*.ico binary
+*.db binary
+*.key binary
+
+# Test and evaluation fixtures: byte-exact inputs under test.
+examples/** -text
+evaluation/datasets/** -text

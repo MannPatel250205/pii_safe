@@ -17,14 +17,14 @@ import tempfile
 import threading
 import time
 import uuid
-from collections.abc import AsyncIterator, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager, contextmanager
 from importlib import resources
 from pathlib import Path
 from typing import Annotated, Any
 
 import yaml
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -272,18 +272,20 @@ def create_app(
             raise HTTPException(401, "invalid or revoked API key", headers={"WWW-Authenticate": "Bearer"})
         return user
 
-    def admin(user: Annotated[dict, Depends(current_user)]) -> dict[str, Any]:
+    def admin(user: Annotated[dict[str, Any], Depends(current_user)]) -> dict[str, Any]:
         if user["role"] != "admin":
             raise HTTPException(403, "admin role required")
         return user
 
-    User = Annotated[dict, Depends(current_user)]
-    Admin = Annotated[dict, Depends(admin)]
+    User = Annotated[dict[str, Any], Depends(current_user)]
+    Admin = Annotated[dict[str, Any], Depends(admin)]
 
     # ------------------------------------------------------------ middleware
 
     @app.middleware("http")
-    async def security_headers(request: Request, call_next):  # noqa: ANN001, ANN202
+    async def security_headers(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
@@ -416,7 +418,7 @@ def create_app(
     # ------------------------------------------------------------- runs
 
     @app.get("/api/runs")
-    def runs(user: User, limit: int = Query(50, le=500), session_id: str | None = None) -> list[dict]:
+    def runs(user: User, limit: int = Query(50, le=500), session_id: str | None = None) -> list[dict[str, Any]]:
         with db() as s:
             items = s.query_runs(limit, session_id)
         for r in items:
@@ -498,7 +500,7 @@ def create_app(
         return rows
 
     @app.get("/api/events")
-    def events(user: Admin, session_id: str | None = None, limit: int = Query(100, le=1000)) -> list[dict]:
+    def events(user: Admin, session_id: str | None = None, limit: int = Query(100, le=1000)) -> list[dict[str, Any]]:
         with db() as s:
             return s.query_events(session_id, limit)
 

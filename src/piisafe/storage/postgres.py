@@ -57,7 +57,7 @@ class PostgresStore(SQLStore):
 
     def _exec(self, sql: str, params: Sequence[Any] | dict[str, Any] = ()) -> int:
         with self._lock:
-            return self._conn.execute(_translate(sql), params or None).rowcount
+            return int(self._conn.execute(_translate(sql), params or None).rowcount)
 
     def _exec_many(self, sql: str, seq: Sequence[Sequence[Any] | dict[str, Any]]) -> None:
         with self._lock, self._conn.cursor() as cur:

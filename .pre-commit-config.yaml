@@ -1,0 +1,61 @@
+# Stage 0B deliverable: the local gate that keeps CI green.
+#
+#   pip install pre-commit && pre-commit install
+#   pre-commit run --all-files      # first run, or after changing this file
+#
+# ruff and the generic hooks run in pre-commit's own isolated envs, so they work
+# on a clean clone. mypy runs from the project venv (`pip install -e ".[dev]"`)
+# because strict mode needs the real dependencies to resolve types.
+
+exclude: '^(build/|.*\.egg-info/)'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        # Sample logs and eval fixtures are inputs under test: whitespace in them
+        # is data, not formatting.
+        exclude: '^(examples/|evaluation/datasets/)'
+      - id: end-of-file-fixer
+        exclude: '^(examples/|evaluation/datasets/)'
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        exclude: '^(examples/|evaluation/datasets/)'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      # A privacy SDK must never ship a key or a session DB.
+      - id: detect-private-key
+      - id: check-case-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.3
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: '^(src|tests|evaluation)/'
+
+  - repo: local
+    hooks:
+      # `language: system` on purpose: strict mypy needs the project's real
+      # dependencies, which an isolated pre-commit env would not have. Activate
+      # the venv before committing, or this hook will not find mypy.
+      - id: mypy
+        name: mypy (strict, src)
+        entry: mypy
+        language: system
+        types: [python]
+        files: '^src/'
+        pass_filenames: false
+        args: [src]
+
+      # Local state that must never reach the repo, belt-and-braces over .gitignore.
+      - id: no-local-secrets
+        name: no keys, session DBs or .env files
+        entry: 'Refusing to commit local PII-Safe state (key / *.db / .env).'
+        language: fail
+        files: '(^|/)(master\.key|\.env)$|\.db$|^\.piisafe/'

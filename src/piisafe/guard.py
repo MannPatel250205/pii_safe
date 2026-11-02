@@ -14,10 +14,10 @@ from __future__ import annotations
 
 import time
 import uuid
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from piisafe import actions, scoring
 from piisafe import entities as E
@@ -143,17 +143,19 @@ class PIISafeGuard:
 
     def on_prompt(self, text: str, policy_id: str | None = None) -> SanitiseResult:
         """User message entering the agent."""
-        return self.hooks.dispatch("on_prompt", text, policy_id=policy_id)
+        return cast(SanitiseResult, self.hooks.dispatch("on_prompt", text, policy_id=policy_id))
 
     def on_context(self, docs: Sequence[str], policy_id: str | None = None) -> list[SanitiseResult]:
         """RAG chunks before they are injected into the context window (one turn)."""
-        return self.hooks.dispatch("on_context", docs, policy_id=policy_id)
+        return cast("list[SanitiseResult]", self.hooks.dispatch("on_context", docs, policy_id=policy_id))
 
     def on_tool_call(
         self, tool_name: str, params: Mapping[str, Any], policy_id: str | None = None
     ) -> dict[str, Any]:
         """Tool parameters before the tool executes. Returns sanitised params."""
-        return self.hooks.dispatch("on_tool_call", tool_name, params, policy_id=policy_id)
+        return cast(
+            "dict[str, Any]", self.hooks.dispatch("on_tool_call", tool_name, params, policy_id=policy_id)
+        )
 
     def on_memory(self, key: str, value: Any, policy_id: str | None = None) -> Any:
         """A value about to be written to agent memory. Returns the sanitised value."""
@@ -161,7 +163,7 @@ class PIISafeGuard:
 
     def on_export(self, text: str, policy_id: str | None = None) -> SanitiseResult:
         """Data leaving the organisation (reports, tickets, external APIs)."""
-        return self.hooks.dispatch("export", text, policy_id=policy_id)
+        return cast(SanitiseResult, self.hooks.dispatch("export", text, policy_id=policy_id))
 
     # ============================================================= integrations
 
@@ -183,7 +185,7 @@ class PIISafeGuard:
 
         return sanitize_node(self, keys, hook)
 
-    def _hook_text(self, hook: str):  # noqa: ANN202
+    def _hook_text(self, hook: str) -> Callable[..., SanitiseResult]:
         def handler(text: str, policy_id: str | None = None) -> SanitiseResult:
             return self.sanitize(text, hook, policy_id=policy_id)
 
@@ -197,7 +199,7 @@ class PIISafeGuard:
         self, tool_name: str, params: Mapping[str, Any], policy_id: str | None = None
     ) -> dict[str, Any]:
         out, _ = self.sanitize_record(dict(params), "on_tool_call", policy_id=policy_id, source=f"tool:{tool_name}")
-        return out
+        return cast("dict[str, Any]", out)
 
     def _handle_memory(self, key: str, value: Any, policy_id: str | None = None) -> Any:
         out, _ = self.sanitize_record({key: value}, "on_memory", policy_id=policy_id, source=f"memory:{key}")
@@ -427,7 +429,7 @@ class PIISafeGuard:
 
         def sub(m: Any) -> str:
             nonlocal count
-            alias = m.group(1)
+            alias = str(m.group(1))
             if alias not in self.registry.records:
                 return alias
             count += 1

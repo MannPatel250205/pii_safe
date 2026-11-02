@@ -224,7 +224,8 @@ class SQLStore:
     # ------------------------------------------------------------ meta
 
     def get_meta(self, key: str) -> str | None:
-        return self._scalar("SELECT value FROM meta WHERE key = ?", (key,))
+        value = self._scalar("SELECT value FROM meta WHERE key = ?", (key,))
+        return None if value is None else str(value)
 
     def set_meta_if_absent(self, key: str, value: str) -> bool:
         return bool(self._exec("INSERT INTO meta(key, value) VALUES (?, ?) ON CONFLICT(key) DO NOTHING", (key, value)))

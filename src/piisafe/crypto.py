@@ -159,6 +159,7 @@ class SessionCrypto:
 
     def decrypt(self, token: bytes) -> dict[str, Any]:
         try:
-            return json.loads(self._fernet.decrypt(token))
+            obj: dict[str, Any] = json.loads(self._fernet.decrypt(token))
+            return obj
         except InvalidToken as exc:
             raise KeyMismatchError("cannot decrypt session data with this key") from exc
