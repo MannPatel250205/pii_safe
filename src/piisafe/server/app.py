@@ -41,7 +41,7 @@ from piisafe.exceptions import (
 from piisafe.guard import PIISafeGuard
 from piisafe.io import FORMATS, BlockedAt, Processor, detect_format
 from piisafe.normalize import normalize_text
-from piisafe.policy import KNOWN_HOOKS, Policy
+from piisafe.policy import STORED_POLICY_KEY, STORED_POLICY_VERSION_KEY, Policy
 from piisafe.runs import record_run
 from piisafe.server.auth import ROLES, authenticate, create_api_key
 from piisafe.server.pool import GuardPool
@@ -106,8 +106,8 @@ class PolicyManager:
     default. Replicas notice a policy saved elsewhere within RELOAD_S seconds.
     """
 
-    META_YAML = "policy.yaml"
-    META_VERSION = "policy.version"
+    META_YAML = STORED_POLICY_KEY
+    META_VERSION = STORED_POLICY_VERSION_KEY
     RELOAD_S = 5.0
 
     def __init__(self, open_db: Callable[[], Any], explicit: Path | None, legacy_file: Path | None = None) -> None:
@@ -135,9 +135,8 @@ class PolicyManager:
         if self.file is not None:
             return Policy.load(self.file)
         with self._open_db() as st:
-            text = st.get_meta(self.META_YAML)
             self._version = st.get_meta(self.META_VERSION)
-        return Policy.from_dict(yaml.safe_load(text), source="<database>") if text else Policy.default()
+            return Policy.from_store(st) or Policy.default()
 
     def get(self) -> Policy:
         if self.file is None and time.monotonic() - self._checked > self.RELOAD_S:
@@ -189,6 +188,17 @@ def _preview(value: str) -> str:
         return "•" * len(value)
     keep = max(1, len(value) // 5)
     return value[:keep] + "•" * min(len(value) - 2 * keep, 10) + value[-keep:]
+
+
+def _public_run(run: dict[str, Any], outputs: Path) -> dict[str, Any]:
+    """A run row safe to send to the browser: no server paths, plus whether its output can be downloaded."""
+    out = {k: v for k, v in run.items() if k not in ("output_path", "report")}
+    path = run.get("output_path")
+    out["has_output"] = bool(
+        path and run.get("status") == "ok"
+        and Path(path).resolve().parent == outputs.resolve() and Path(path).exists()
+    )
+    return out
 
 
 def _check_session(session_id: str) -> str:
@@ -316,7 +326,7 @@ def create_app(
         pol = policies.get()
         return {
             "name": user["name"], "role": user["role"], "version": __version__,
-            "hooks": list(KNOWN_HOOKS), "policy_ids": pol.policy_names(), "formats": list(FORMATS),
+            "hooks": pol.hook_names(), "policy_ids": pol.policy_names(), "formats": list(FORMATS),
             "max_upload_mb": max_upload_mb,
         }
 
@@ -419,9 +429,7 @@ def create_app(
     def runs(user: User, limit: int = Query(50, le=500), session_id: str | None = None) -> list[dict]:
         with db() as s:
             items = s.query_runs(limit, session_id)
-        for r in items:
-            r["has_output"] = bool(r.pop("output_path", None)) and r["status"] == "ok"
-        return items
+        return [_public_run(r, outputs) for r in items]
 
     @app.get("/api/runs/{run_id}/output")
     def run_output(run_id: str, user: User) -> FileResponse:
@@ -442,10 +450,7 @@ def create_app(
         with db() as s:
             data = s.stats(days)
             data["pending_reviews"] = len(s.pending_reviews(1000))
-            data["recent_runs"] = s.query_runs(8)
-        for r in data["recent_runs"]:
-            r.pop("output_path", None)
-            r.pop("report", None)
+            data["recent_runs"] = [_public_run(r, outputs) for r in s.query_runs(8)]
         return data
 
     @app.get("/api/sessions")
@@ -463,10 +468,7 @@ def create_app(
             return {
                 **info,
                 "entities": s.entity_summary(session_id),
-                "runs": [
-                    {k: v for k, v in r.items() if k not in ("output_path", "report")}
-                    for r in s.query_runs(50, session_id)
-                ],
+                "runs": [_public_run(r, outputs) for r in s.query_runs(50, session_id)],
             }
 
     @app.delete("/api/sessions/{session_id}")
@@ -548,7 +550,7 @@ def create_app(
     def get_policy(user: User) -> dict[str, Any]:
         pol = policies.get()
         return {"yaml": policies.text(), "path": policies.location, "source": pol.source,
-                "policy_ids": pol.policy_names(), "hooks": list(KNOWN_HOOKS), "matrix": pol.matrix()}
+                "policy_ids": pol.policy_names(), "hooks": pol.hook_names(), "matrix": pol.matrix()}
 
     @app.post("/api/policy/validate")
     def validate_policy(body: PolicyIn, user: User) -> dict[str, Any]:
@@ -556,7 +558,7 @@ def create_app(
             pol = policies.validate(body.yaml)
         except PolicyError as exc:
             return {"valid": False, "error": str(exc)}
-        return {"valid": True, "policy_ids": pol.policy_names(), "matrix": pol.matrix()}
+        return {"valid": True, "policy_ids": pol.policy_names(), "hooks": pol.hook_names(), "matrix": pol.matrix()}
 
     @app.put("/api/policy")
     def put_policy(body: PolicyIn, user: Admin) -> dict[str, Any]:
@@ -567,7 +569,7 @@ def create_app(
         pool.invalidate()
         with db() as s:
             s.log_event("", "policy_update", {"by": user["name"], "where": policies.location})
-        return {"saved": True, "policy_ids": pol.policy_names()}
+        return {"saved": True, "policy_ids": pol.policy_names(), "hooks": pol.hook_names()}
 
     # ------------------------------------------------------------- api keys
 

@@ -383,7 +383,8 @@ class PIISafeGuard:
 
         # pseudonymise
         res = self.resolver.resolve(self.registry, span.entity_type, canonical, self._turn_aliases)
-        surface = span.resolve_value.strip()
+        # Phones resolve on their E.164 form but are restored as written ('+44 20 7946 0958').
+        surface = (span.text if span.detector == "phone" else span.resolve_value).strip()
         if res.record is not None:
             rec = res.record
             self.registry.add_variant(rec, canonical, surface)

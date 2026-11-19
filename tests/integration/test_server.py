@@ -104,7 +104,12 @@ def test_file_upload_download_and_dashboard(env):
     st = c.get("/api/stats", headers=analyst).json()
     assert st["findings"] > 10 and st["records"] >= 13
     assert st["recent_runs"][0]["source"] == "security.log"
-    assert c.get("/api/sessions/FILE-1", headers=analyst).json()["entities"]
+    detail = c.get("/api/sessions/FILE-1", headers=analyst).json()
+    assert detail["entities"]
+    # Every run list offers the download later, without leaking server paths.
+    for runs in (st["recent_runs"], detail["runs"], c.get("/api/runs", headers=analyst).json()):
+        assert runs[0]["has_output"] is True and "output_path" not in runs[0] and "report" not in runs[0]
+    assert c.get(f"/api/runs/{runs[0]['id']}/output", headers=analyst).content == out.content
 
 
 def test_blocked_upload(env):
@@ -143,3 +148,17 @@ def test_policy_edit_and_keys(env):
     assert c.get("/api/me", headers={"Authorization": f"Bearer {k['key']}"}).status_code == 401
     admin_id = next(x["id"] for x in c.get("/api/keys", headers=admin).json() if x["role"] == "admin")
     assert c.delete(f"/api/keys/{admin_id}", headers=admin).status_code == 409  # last admin
+
+
+def test_custom_hook_reaches_dashboard(env):
+    c, admin, analyst = env
+    assert c.get("/api/me", headers=analyst).json()["hooks"][:2] == ["on_prompt", "on_context"]
+    yaml_text = ("policies:\n  - name: tickets\n    hook_type: [on_ticket]\n"
+                 "    rules:\n      - entity_type: EMAIL_ADDRESS\n        action: redact\n")
+    v = c.post("/api/policy/validate", json={"yaml": yaml_text}, headers=analyst).json()
+    assert v["valid"] and v["hooks"][-1] == "on_ticket" and "on_ticket" in v["matrix"]["EMAIL_ADDRESS"]
+    saved = c.put("/api/policy", json={"yaml": yaml_text}, headers=admin).json()
+    assert saved["hooks"][-1] == "on_ticket"
+    assert c.get("/api/me", headers=analyst).json()["hooks"][-1] == "on_ticket"
+    r = c.post("/api/sanitize", json={"text": "mail raj@corp.com", "hook": "on_ticket"}, headers=analyst)
+    assert r.json()["sanitised_text"] == "mail [EMAIL_ADDRESS]"

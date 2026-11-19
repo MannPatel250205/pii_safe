@@ -92,3 +92,34 @@ def test_field_hints():
     assert p.hint_for_field("userEmail") == "EMAIL_ADDRESS"
     assert p.hint_for_field("user_agent") is None
     assert p.hint_for_field("file_name") is None
+
+
+def test_hook_names_lists_custom_hooks_after_builtins():
+    from piisafe.policy import KNOWN_HOOKS
+
+    pol = Policy.from_dict({"policies": [
+        {"name": "a", "hook_type": ["on_ticket", "*"], "rules": [{"entity_type": "*", "action": "redact"}]},
+        {"name": "b", "hook_type": ["export", "on_alert"], "rules": []},
+    ]})
+    assert pol.hook_names() == [*KNOWN_HOOKS, "on_alert", "on_ticket"]
+    assert set(pol.matrix()["EMAIL_ADDRESS"]) == set(pol.hook_names())
+
+
+@pytest.mark.parametrize(("data", "message"), [
+    ({"setings": {}}, "unknown key 'setings' (did you mean 'settings'?)"),
+    ({"settings": {"phone_region": ["IN"]}}, "settings: unknown key 'phone_region' (did you mean 'phone_regions'?)"),
+    ({"policies": [{"name": "a", "hook_types": ["export"]}]},
+     "policies[a]: unknown key 'hook_types' (did you mean 'hook_type'?)"),
+    ({"policies": [{"name": "a", "rules": [{"entity_types": "EMAIL_ADDRESS", "action": "redact"}]}]},
+     "policies[a].rules[0]: unknown key 'entity_types' (did you mean 'entity_type'?)"),
+    ({"custom_patterns": [{"entity_type": "EMP_ID", "regex": "E\\d+", "aliass": "EMP"}]},
+     "custom_patterns[0]: unknown key 'aliass' (did you mean 'alias'?)"),
+])
+def test_unknown_keys_are_rejected(data, message):
+    with pytest.raises(PolicyError) as exc:
+        Policy.from_dict(data)
+    assert message in str(exc.value)
+
+
+def test_description_keys_are_allowed():
+    Policy.from_dict({"description": "SOC policy", "policies": [{"name": "a", "description": "tickets"}]})

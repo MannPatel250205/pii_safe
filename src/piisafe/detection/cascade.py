@@ -59,7 +59,28 @@ class DetectionCascade:
                 with self.latency.time("tier2"):
                     extra = [s for s in self.ner.detect(masked) if not any(s.overlaps(o) for o in spans)]
                 spans = sorted([*spans, *extra], key=lambda s: s.start)
+        spans = self._repeat_in_block(text, spans)
         return merge_adjacent_names(text, spans)
+
+    def _repeat_in_block(self, text: str, spans: list[Span]) -> list[Span]:
+        """Catch re-mentions of names first found in this same text.
+
+        Session memory only knows names from earlier calls, so in a multi-line
+        paste a later 'kavishka' would slip past the 'Kavishka' NER found above
+        it. A throwaway memory built from this call's own findings closes that.
+        """
+        if self.memory is None:
+            return spans
+        local = SessionMemoryDetector()
+        for s in spans:
+            if s.entity_type in E.MEMORABLE_TYPES and s.detector != "session_memory":
+                local.add(s.text, s.entity_type)
+        if not len(local):
+            return spans
+        extra = [s for s in local.detect(text) if not any(s.overlaps(o) for o in spans)]
+        if not extra:
+            return spans
+        return sorted([*spans, *extra], key=lambda s: s.start)
 
 
 def merge_adjacent_names(text: str, spans: list[Span]) -> list[Span]:

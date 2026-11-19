@@ -414,7 +414,7 @@ Still to do:
 
 ### Phase 3: backend service
 
-**Done in v0.1:** `piisafe serve` provides FastAPI, API keys with roles, per-session locking, and a Dockerfile (not yet build-tested). See §3.10.
+**Done in v0.1:** `piisafe serve` provides FastAPI, API keys with roles, per-session locking, and a Dockerfile (built and smoke-tested by the `docker` CI job). See §3.10.
 
 **Done since:** `PostgresStore` (advisory locks across hosts) and managed master keys wrapped by AWS KMS or Vault Transit (`keyproviders.py`, `piisafe master-key migrate`). The Docker compose file runs the dashboard with Postgres.
 

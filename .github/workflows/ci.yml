@@ -59,7 +59,48 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: pyproject.toml
-      - run: pip install -e ".[dev,server,postgres,aws]" moto
-      - run: pytest tests/integration/test_backends.py tests/integration/test_server.py
+      - run: pip install -e ".[dev,server,postgres,aws]"
+      - run: pytest -rs tests/integration/test_backends.py tests/integration/test_server.py
         env:
           PIISAFE_TEST_DATABASE_URL: postgresql://piisafe:piisafe@127.0.0.1:5432/piisafe_test
+
+  # The suite once more with the optional spaCy NER backend.
+  test-spacy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install -e ".[dev,server,agents,ner]" && python -m spacy download en_core_web_sm
+      - run: pytest -rs
+      - run: python evaluation/run_eval.py
+
+  # Builds the image and starts the compose stack (dashboard + Postgres) end to end.
+  docker:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-only-password
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - run: docker compose build
+      - name: Start the stack and wait until it is healthy
+        run: docker compose up -d --wait --wait-timeout 180
+      - name: Smoke test
+        run: |
+          curl -fsS http://127.0.0.1:8765/api/health
+          key=$(docker compose logs --no-log-prefix piisafe | grep -o 'psk_[A-Za-z0-9_-]*' | head -1)
+          [ -n "$key" ] || { echo "admin key not printed"; exit 1; }
+          out=$(curl -fsS -H "Authorization: Bearer $key" -H 'Content-Type: application/json' \
+                -d '{"text":"raj.mehta@corp.com accessed 192.168.1.45","session_id":"CI"}' \
+                http://127.0.0.1:8765/api/sanitize)
+          echo "$out"
+          echo "$out" | grep -q 'MAIL_001 accessed HOST_001'
+          docker compose exec -T piisafe piisafe doctor
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down -v

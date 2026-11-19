@@ -10,6 +10,7 @@ Policies are validated on load and every problem is reported at once.
 
 from __future__ import annotations
 
+import difflib
 import re
 from dataclasses import dataclass, field
 from importlib import resources
@@ -25,6 +26,36 @@ from piisafe.models import Action
 from piisafe.resolution.resolver import ResolutionConfig
 
 KNOWN_HOOKS = ("on_prompt", "on_context", "on_tool_call", "on_memory", "export")
+# Meta-table keys for the policy edited in the dashboard (shared by server and CLI).
+STORED_POLICY_KEY = "policy.yaml"
+STORED_POLICY_VERSION_KEY = "policy.version"
+# Every key a policy may use, per section. Anything else is almost always a typo
+# ('hook_types', 'entity_types') that would otherwise be silently ignored.
+# 'description' is allowed for comments that survive YAML round-trips.
+_KEYS = {
+    "": {"version", "description", "default_action", "settings", "resolution", "aliases", "sensitivity",
+         "allowlist", "custom_patterns", "field_hints", "entities", "policies"},
+    "settings": {"phone_regions", "ner", "spacy_model", "min_ner_score", "ner_types", "decode_encoded",
+                 "redaction_format", "mask_char"},
+    "resolution": {"merge_threshold", "new_entity_threshold", "min_fuzzy_length", "link_identities"},
+    "allowlist": {"values", "patterns"},
+    "custom_patterns": {"name", "entity_type", "regex", "score", "group", "alias", "description"},
+    "policies": {"name", "description", "hook_type", "rules", "default_action"},
+    "rules": {"entity_type", "action"},
+}
+
+
+def _unknown_keys(obj: Any, section: str, where: str, errors: list[str]) -> None:
+    if not isinstance(obj, dict):
+        return
+    allowed = _KEYS[section]
+    for key in obj:
+        if key not in allowed:
+            close = difflib.get_close_matches(str(key), allowed, n=1, cutoff=0.6)
+            hint = f" (did you mean '{close[0]}'?)" if close else f" (allowed: {', '.join(sorted(allowed))})"
+            errors.append(f"{where}: unknown key '{key}'{hint}")
+
+
 _HOOK_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 _TYPE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
@@ -99,6 +130,18 @@ class Policy:
         return cls.from_dict(data, source=str(p))
 
     @classmethod
+    def from_store(cls, store: Any) -> Policy | None:
+        """The policy saved from the dashboard (kept in the DB meta table), or None if none was saved."""
+        text = store.get_meta(STORED_POLICY_KEY)
+        if not text:
+            return None
+        try:
+            data = yaml.safe_load(text)
+        except yaml.YAMLError as exc:
+            raise PolicyError(f"<database>: invalid YAML: {exc}") from exc
+        return cls.from_dict(data, source="<database>")
+
+    @classmethod
     def from_dict(cls, data: Any, source: str = "<dict>") -> Policy:
         errors: list[str] = []
         if not isinstance(data, dict):
@@ -121,6 +164,12 @@ class Policy:
                     errors.append(f"{where}: invalid entity_type '{s}' (use UPPER_SNAKE_CASE)")
                 out.add(s)
             return frozenset(out)
+
+        _unknown_keys(data, "", "top level", errors)
+        for sec in ("settings", "resolution", "allowlist"):
+            _unknown_keys(data.get(sec), sec, sec, errors)
+            if data.get(sec) is not None and not isinstance(data.get(sec), dict):
+                raise PolicyError(f"{source}: '{sec}' must be a mapping")
 
         pol = cls(source=source)
         pol.version = str(data.get("version", "1.0"))
@@ -184,6 +233,7 @@ class Policy:
         customs = []
         for i, cp in enumerate(data.get("custom_patterns", []) or []):
             where = f"custom_patterns[{i}]"
+            _unknown_keys(cp, "custom_patterns", where, errors)
             if not isinstance(cp, dict) or "regex" not in cp or "entity_type" not in cp:
                 errors.append(f"{where}: needs 'entity_type' and 'regex'")
                 continue
@@ -219,6 +269,7 @@ class Policy:
                 continue
             name = str(np_["name"])
             where = f"policies[{name}]"
+            _unknown_keys(np_, "policies", where, errors)
             if name in names:
                 errors.append(f"{where}: duplicate policy name")
             names.add(name)
@@ -230,6 +281,7 @@ class Policy:
             rules = []
             for j, rule in enumerate(np_.get("rules", []) or []):
                 rw = f"{where}.rules[{j}]"
+                _unknown_keys(rule, "rules", rw, errors)
                 if not isinstance(rule, dict) or "entity_type" not in rule or "action" not in rule:
                     errors.append(f"{rw}: needs 'entity_type' and 'action'")
                     continue
@@ -247,6 +299,11 @@ class Policy:
 
     def policy_names(self) -> list[str]:
         return [p.name for p in self.policies]
+
+    def hook_names(self) -> list[str]:
+        """The built-in hooks, then any custom hook types this policy names (e.g. 'on_ticket')."""
+        custom = {h for p in self.policies for h in p.hook_types} - set(KNOWN_HOOKS) - {"*"}
+        return [*KNOWN_HOOKS, *sorted(custom)]
 
     def action_for(
         self, entity_type: str, hook_type: str, policy_id: str | None = None
@@ -306,5 +363,5 @@ class Policy:
         self, entity_types: list[str] | None = None, hooks: list[str] | None = None
     ) -> dict[str, dict[str, str]]:
         types = entity_types or sorted(self.enabled_types())
-        hks = hooks or list(KNOWN_HOOKS)
+        hks = hooks or self.hook_names()
         return {t: {h: self.action_for(t, h)[0].value for h in hks} for t in types}

@@ -3,7 +3,7 @@
 A single summary of what PII-Safe does today, where it falls short, and what comes next.
 For how things work internally, see [DESIGN.md](DESIGN.md). For setup and usage, see the [README](../README.md).
 
-Status as of **2026-10-11**, version **0.1.0**.
+Status as of **2026-11-19**, version **0.1.0**.
 
 ---
 
@@ -34,7 +34,9 @@ Status as of **2026-10-11**, version **0.1.0**.
 - Five actions per entity type and per hook: `allow`, `pseudonymise`, `redact`, `mask`, `block`.
 - Hooks: `on_prompt`, `on_context`, `on_memory`, `on_tool_call`.
 - An allowlist (values and patterns), alias prefix overrides and per-type on/off switches.
-- Validation from the CLI (`piisafe policy validate`) or from the dashboard editor.
+- Validation from the CLI (`piisafe policy validate`) or from the dashboard editor. Unknown keys are rejected with a "did you mean" hint, so a typo such as `hook_types` can't silently fall back to a default.
+- Custom hook names (e.g. `on_ticket`) work in the SDK, API, CLI and dashboard.
+- One active policy for every interface: the CLI uses `-p FILE`, then `./piisafe.yaml`, then the policy saved from the dashboard, then the built-in default.
 
 ### Security
 
@@ -88,7 +90,6 @@ Status as of **2026-10-11**, version **0.1.0**.
 
 - No built-in detection for dates of birth, street addresses, passport numbers, or national IDs other than US SSN (Aadhaar, PAN, NI …), bank account numbers or driver's licences. Custom patterns can cover some of these.
 - Phone numbers written without a `+country` prefix are found only for the regions listed in `settings.phone_regions` (default: US, IN, GB).
-- **Restore normalises phone numbers:** `+44 20 7946 0958` comes back as `+442079460958`. It is the same number, but the original spacing is lost.
 - `json` (whole-document) input is loaded fully into memory. `text`, `jsonl` and `csv` stream.
 
 ### Agent workflows
@@ -101,9 +102,8 @@ Status as of **2026-10-11**, version **0.1.0**.
 - The dashboard signs in with pasted API keys. **No SSO** (OIDC/SAML).
 - No multi-tenancy, quotas or rate limits.
 - Managed keys cover AWS KMS and Vault only; GCP KMS and Azure Key Vault are not supported.
-- The **Docker image and compose file have not been build-tested.**
-- The **PostgreSQL tests** run only when `PIISAFE_TEST_DATABASE_URL` is set. Otherwise they are skipped.
-- **CI tests less than it seems:** the workflow installs only `.[dev]`, so the server, LangChain, LangGraph and MCP tests are skipped on GitHub. Installing `.[dev,server,agents]` in CI would fix this.
+- **CI is set up but has not run yet.** `.github/workflows/ci.yml` builds the Docker image, starts the compose stack and smoke-tests it, runs the PostgreSQL tests against a Postgres service, and installs every extra so the server, agent-framework and AWS tests run. Until the repository is pushed and that workflow passes, treat the Docker files and the Postgres backend as untested.
+- Locally, the **PostgreSQL tests** run only when `PIISAFE_TEST_DATABASE_URL` is set. Otherwise they are skipped.
 - **Memory:** the full test suite with spaCy needs about 2 GB of free RAM. On small VMs without swap, the OOM killer can stop the test run and the editor that started it.
 
 ---
@@ -156,12 +156,12 @@ Status as of **2026-10-11**, version **0.1.0**.
 - Sanitising LLM output as it streams.
 - Differential-privacy aggregate reports.
 
-### Quick wins (small, low risk)
+### Quick wins: done on 2026-11-19
 
-- Install `.[dev,server,agents]` in CI so server and agent tests actually run.
-- Add a Postgres service to CI so the 15 Postgres tests run.
-- Build the Docker image in CI to close the "not build-tested" gap.
-- Optionally keep the original phone formatting on restore.
+- CI installs `.[dev,server,agents,postgres,aws]`, with a separate job for spaCy.
+- A Postgres service in CI, so the Postgres tests run.
+- A Docker job in CI that builds the image and smoke-tests the compose stack.
+- Restore keeps phone numbers as originally written.
 
 ---
 

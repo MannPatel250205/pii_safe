@@ -128,6 +128,11 @@ function runsTable(runs, ctx, { showSession = true } = {}) {
     { label: "Status", render: (r) => r.status === "ok"
       ? h("span", { class: "status good" }, icon("check"), "Done")
       : h("span", { class: "status critical" }, icon("octagon"), "Blocked") },
+    { label: "Output", render: (r) => r.has_output
+      ? h("button", { class: "btn ghost sm", title: "Download sanitised file", "aria-label": `Download sanitised ${r.source}`,
+          onclick: () => download(`/api/runs/${encodeURIComponent(r.id)}/output`).catch((e) => toast(e.message, "error")) },
+        icon("download"), "Download")
+      : h("span", { class: "muted" }, "—") },
   ].filter(Boolean), runs || [], { empty: "No file runs yet." });
 }
 
@@ -450,7 +455,7 @@ export function policy(root, ctx) {
       put(status, r.valid
         ? h("div", { class: "callout" }, h("span", { class: "status good" }, icon("check"), "Valid"), ` — policies: ${r.policy_ids.join(", ") || "none"}`)
         : h("pre", { class: "callout error mono", role: "alert" }, r.error));
-      if (r.valid) put(matrixHolder, matrix(r.matrix, p.hooks));
+      if (r.valid) put(matrixHolder, matrix(r.matrix, r.hooks));
       return r.valid;
     };
     const save = async () => {
@@ -458,7 +463,13 @@ export function policy(root, ctx) {
       const ok = await modal("Save policy", h("p", null, `This replaces ${p.path} and applies to all new requests immediately.`),
         [{ label: "Cancel", value: false }, { label: "Save", value: true, class: "primary" }]);
       if (!ok) return;
-      try { await api("/api/policy", { method: "PUT", body: { yaml: editor.value } }); toast("Policy saved and active."); }
+      try {
+        const r = await api("/api/policy", { method: "PUT", body: { yaml: editor.value } });
+        // Keep the Sanitize page's Hook and Policy dropdowns in step without a reload.
+        ctx.me.hooks = r.hooks;
+        ctx.me.policy_ids = r.policy_ids;
+        toast("Policy saved and active.");
+      }
       catch (e) { toast(e.message, "error"); }
     };
     return h("div", { class: "stack" },

@@ -88,3 +88,27 @@ def test_missing_session(state_dir, tmp_path):
 )
 def test_commands_run(state_dir, cmd):
     assert run(*cmd) == 0
+
+
+def test_cli_uses_policy_saved_from_dashboard(state_dir, tmp_path, monkeypatch):
+    from piisafe.policy import STORED_POLICY_KEY
+    from piisafe.storage import open_store
+
+    monkeypatch.chdir(tmp_path)  # no ./piisafe.yaml here
+    src = tmp_path / "in.log"
+    src.write_text("raj.mehta@corp.com accessed 192.168.1.45\n")
+    out = tmp_path / "out.log"
+    assert run("sanitize", str(src), "-o", str(out), "-s", "P0", "-q", "--ner", "off") == 0
+    assert out.read_text() == "MAIL_001 accessed HOST_001\n"  # built-in default
+
+    store = open_store(None, state_dir)  # what the dashboard's policy editor writes
+    store.set_meta(STORED_POLICY_KEY, "policies:\n  - name: strict\n    hook_type: '*'\n"
+                                      "    rules:\n      - entity_type: '*'\n        action: redact\n")
+    store.close()
+    assert run("sanitize", str(src), "-o", str(out), "-s", "P1", "-q", "--ner", "off") == 0
+    assert out.read_text() == "[EMAIL_ADDRESS] accessed [IP_ADDRESS]\n"
+
+    # ./piisafe.yaml still wins over the stored policy.
+    assert run("init", str(tmp_path / "piisafe.yaml")) == 0
+    assert run("sanitize", str(src), "-o", str(out), "-s", "P2", "-q", "--ner", "off") == 0
+    assert out.read_text() == "MAIL_001 accessed HOST_001\n"

@@ -81,3 +81,25 @@ def test_no_plaintext_pii_on_disk(state_dir):
 def test_hook_registry_is_extensible(guard):
     guard.hooks.register("on_tool_result", lambda text: guard.sanitize(text, "on_tool_result"))
     assert guard.hooks.dispatch("on_tool_result", "ip 192.168.1.45").sanitised_text == "ip HOST_001"
+
+
+def test_repeat_name_in_one_block_is_caught(heuristic_guard):
+    # A multi-line paste is one sanitize() call: the lowercase re-mention must not leak.
+    text = "Kavishka logged in from 10.0.0.1\nexport job queued by kavishka"
+    out = heuristic_guard.on_prompt(text).sanitised_text
+    assert "avishka" not in out.lower()
+    first, second = out.splitlines()
+    assert first.split()[0] == second.split()[-1]
+
+
+def test_short_lowercase_word_not_promoted_in_block(heuristic_guard):
+    # 'Mark' as a name must not turn the ordinary word 'mark' into PII.
+    out = heuristic_guard.on_prompt("Mark logged in\nplease mark the ticket done").sanitised_text
+    assert out.splitlines()[1] == "please mark the ticket done"
+
+
+def test_restore_keeps_phone_formatting(guard):
+    a = guard.on_prompt("call +44 20 7946 0958 now").sanitised_text
+    b = guard.on_prompt("or +442079460958").sanitised_text
+    assert a == "call PHONE_001 now" and b == "or PHONE_001"  # one number, one alias
+    assert guard.restore(a) == "call +44 20 7946 0958 now"

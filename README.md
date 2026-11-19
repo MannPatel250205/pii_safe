@@ -86,7 +86,7 @@ docker compose up -d
 docker compose logs piisafe               # copy the one-time admin API key printed on first start
 ```
 
-Open <http://localhost:8765>. The image includes the `server`, `ner`, `postgres`, `aws` and `mcp` extras. The port is bound to localhost only; put an HTTPS reverse proxy in front before exposing it. *The Docker files have not been build-tested yet.*
+Open <http://localhost:8765>. The image includes the `server`, `ner`, `postgres`, `aws` and `mcp` extras. The port is bound to localhost only; put an HTTPS reverse proxy in front before exposing it. *The `docker` CI job builds and smoke-tests this stack; it has not had its first run yet.*
 
 ---
 
@@ -419,6 +419,8 @@ Generate one with `piisafe init`. The default policy documents itself. Key secti
 
 Check a policy with `piisafe policy validate piisafe.yaml` and `piisafe policy show`. In the dashboard, the **Policy** page edits it live.
 
+The CLI picks its policy in this order: `-p FILE`, then `./piisafe.yaml`, then the policy saved from the dashboard (stored in the database), then the built-in default. `piisafe policy show` prints which one is in use.
+
 ---
 
 ## 7. How it works
@@ -493,4 +495,4 @@ Structured PII is reliable. Name detection over-protects: Title-Case product nam
 - Phone detection depends on `settings.phone_regions` for numbers written without a `+country` prefix.
 - The dashboard signs in with pasted API keys. SSO (OIDC/SAML) is not implemented yet.
 - Tools called by an agent receive aliases, not real values. Automatic per-tool restore is on the roadmap.
-- The Docker image and compose file have not been build-tested.
+- The Docker image and compose file are only covered by the `docker` CI job, which has not had its first run yet.

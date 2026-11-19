@@ -54,11 +54,24 @@ out = Console(highlight=False)
 # =================================================================== helpers
 
 
-def _load_policy(path: str | None) -> Policy:
+def _load_policy(a: argparse.Namespace, path: str | None = None) -> Policy:
+    """-p FILE, else ./piisafe.yaml, else the policy saved from the dashboard, else the built-in default."""
+    path = path or getattr(a, "policy", None)
     if path:
         return Policy.load(path)
     found = find_policy_file()
-    return Policy.load(found) if found else Policy.default()
+    if found:
+        return Policy.load(found)
+    store = _open_db(a)
+    if store is not None:
+        try:
+            stored = Policy.from_store(store)
+        finally:
+            store.close()
+        if stored is not None:
+            stored.source = f"dashboard policy in {_where(a)}"
+            return stored
+    return Policy.default()
 
 
 def _state_dir(a: argparse.Namespace) -> Path:
@@ -124,7 +137,7 @@ def _existing_guard(a: argparse.Namespace, session: str) -> PIISafeGuard:
         store.close()
         raise PIISafeError(f"session '{session}' not found in {_where(a)}")
     return PIISafeGuard(
-        _load_policy(getattr(a, "policy", None)), session, state_dir=_state_dir(a), store=store,
+        _load_policy(a), session, state_dir=_state_dir(a), store=store,
         session_key=_read_key(a), ner="off", create_keys=False, key_provider=getattr(a, "key_provider", None),
     )
 
@@ -239,7 +252,7 @@ def cmd_sanitize(a: argparse.Namespace) -> int:
     if same_file:
         err.print("[red]output must differ from input[/]")
         return EXIT_USAGE
-    policy = _load_policy(a.policy)
+    policy = _load_policy(a)
     session = a.session or datetime.now().strftime("run-%Y%m%d-%H%M%S")
     fmt = detect_format(a.input, a.format)
     guard = PIISafeGuard(
@@ -301,7 +314,7 @@ def cmd_sanitize(a: argparse.Namespace) -> int:
 
 
 def cmd_scan(a: argparse.Namespace) -> int:
-    policy = _load_policy(a.policy)
+    policy = _load_policy(a)
     fmt = detect_format(a.input, a.format)
     guard = PIISafeGuard(policy, "scan", ephemeral=True, ner=a.ner, block_mode="redact")
     rows: list[dict[str, Any]] = []
@@ -517,15 +530,16 @@ def cmd_policy(a: argparse.Namespace) -> int:
         if unknown:
             err.print(f"[yellow]note:[/] custom hook types {unknown} only apply when called explicitly")
         return EXIT_OK
-    pol = _load_policy(a.file or a.policy)
+    pol = _load_policy(a, a.file)
     matrix = pol.matrix()
     colours = {"allow": "red", "pseudonymise": "green", "redact": "cyan", "mask": "blue", "block": "magenta"}
     t = Table(title=f"policy matrix — {pol.source}", title_justify="left")
     t.add_column("entity type")
-    for h in KNOWN_HOOKS:
+    hooks = pol.hook_names()
+    for h in hooks:
         t.add_column(h)
     for etype, row in matrix.items():
-        t.add_row(etype, *[f"[{colours[row[h]]}]{_ACTION_SHORT[row[h]]}[/]" for h in KNOWN_HOOKS])
+        t.add_row(etype, *[f"[{colours[row[h]]}]{_ACTION_SHORT[row[h]]}[/]" for h in hooks])
     out.print(t)
     err.print("[dim]pseudo = pseudonymise (stable alias such as USER_001)[/]")
     return EXIT_OK
@@ -577,7 +591,7 @@ def cmd_doctor(a: argparse.Namespace) -> int:
                      ("rich", "CLI output"), ("spacy", "tier 2 NER (optional)")):
         v = ver(pkg)
         t.add_row(f"{pkg} [dim]({why})[/]", f"[green]{v}[/]" if v else "[yellow]not installed[/]")
-    pol = _load_policy(a.policy)
+    pol = _load_policy(a)
     from piisafe.detection import NERDetector
 
     ner = NERDetector(pol.settings.ner, pol.settings.spacy_model)
@@ -653,7 +667,7 @@ def cmd_mcp(a: argparse.Namespace) -> int:
         err.print("[yellow]restore tool enabled: the connected model can turn aliases back into real PII.[/]")
     if a.transport != "stdio":  # stdout carries the protocol on stdio, so only talk on stderr
         err.print(f"MCP endpoint: [bold]http://{a.host}:{a.port}/mcp[/]   state: {_state_dir(a)}")
-    mcp_server.run(a.transport, a.host, a.port, policy=_load_policy(a.policy), state_dir=_state_dir(a),
+    mcp_server.run(a.transport, a.host, a.port, policy=_load_policy(a), state_dir=_state_dir(a),
                    database_url=a.database_url, key_provider=a.key_provider, allow_restore=a.allow_restore)
     return EXIT_OK
 
@@ -749,7 +763,8 @@ def cmd_master_key(a: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--state-dir", help="registry/audit/key location (default $PIISAFE_HOME or ~/.piisafe)")
-    common.add_argument("-p", "--policy", help="policy YAML (default ./piisafe.yaml, else built-in)")
+    common.add_argument("-p", "--policy", help="policy YAML (default ./piisafe.yaml, else the policy saved "
+                        "from the dashboard, else built-in)")
     common.add_argument("--database-url", help="postgresql://… or sqlite:///… (default $PIISAFE_DATABASE_URL, "
                         "else SQLite in the state dir)")
     common.add_argument("--key-provider", choices=("local", "env", "aws-kms", "vault-transit"),
