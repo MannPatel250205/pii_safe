@@ -55,10 +55,11 @@ class DetectionCascade:
 
         if self.ner is not None:
             masked = mask_spans(text, spans)
-            if _CAPITALISED.search(masked):
-                with self.latency.time("tier2"):
-                    extra = [s for s in self.ner.detect(masked) if not any(s.overlaps(o) for o in spans)]
-                spans = sorted([*spans, *extra], key=lambda s: s.start)
+            with self.latency.time("tier2"):
+                # Without a capitalised word only the cheap lower-case name check runs.
+                found = self.ner.detect(masked, full=bool(_CAPITALISED.search(masked)))
+            extra = [s for s in found if not any(s.overlaps(o) for o in spans)]
+            spans = sorted([*spans, *extra], key=lambda s: s.start)
         spans = self._repeat_in_block(text, spans)
         return merge_adjacent_names(text, spans)
 

@@ -134,12 +134,20 @@ Every detector returns `Span(start, end, text, entity_type, score, tier, detecto
 
 **Session memory, `memory.py`.** Every name-like value (PERSON, USERNAME, …) that the session has seen is compiled into a single regex. Later mentions are caught deterministically, including lowercase ones for names of 6+ letters ("kavishka").
 
-**Tier 2, `ner.py`.** Runs only if a capitalised word (`[A-Z][a-z]`) survives masking. That skips ISO timestamps and ALL-CAPS status codes, about 60% of lines in the benchmark.
+**Tier 2, `ner.py`.** The full rules and spaCy run only if a capitalised word (`[A-Z][a-z]`) survives masking. That skips ISO timestamps and ALL-CAPS status codes, about 60% of lines in the benchmark. Every line still gets the cheap lowercase check below (a word-set lookup).
 - **Strong rules:** an honorific (`Dr. Alice Brown`), or a name followed by an action verb (`Raju accessed`, `Kavihska approved`).
-- **Weak rules:** a cue word followed by a name (`assigned to Priya Sharma`), or any capitalised pair. When spaCy is installed, a weak match must be **corroborated** by a spaCy PERSON.
+- **Weak rules:** a cue word followed by a name (`assigned to Priya Sharma`), or any capitalised pair. When spaCy is installed, a weak match must be **corroborated** by a spaCy PERSON or by a known first name. A capitalised pair must still be two words after stopwords are trimmed ("New York" → "York" is dropped).
+- **Name lists:** "John, Sarah and Ali": a name joined by `and` / `or` / `&` / a comma to a match is a name too.
+- **Possessives:** "Kenji Sato's" is detected as "Kenji Sato", so it gets the same alias as later bare mentions.
+- **Lowercase names:** a lowercase known first name is a PERSON ("kevin reset the router"). The next word is taken as the surname only if the text after it reads like a sentence: a verb, `will`, `has`, a preposition, punctuation or the end ("carlos garcia will take over"). Words glued to paths, hosts, emails or keys (`/home/james`, `ws-james-01`, `user=james`) are skipped.
 - **spaCy `en_core_web_sm` (optional):** junk filters reject ALL-CAPS single tokens, underscores and digits.
 - **Output types:** `settings.ner_types` (default `[PERSON]`). On logs, spaCy's ORG and LOC labels are mostly product and team names.
 - **Stopwords:** a list of words common in ops and logs that are never names.
+
+**Name and product lists, `data/`.** Plain-text, whitespace-separated, case-insensitive, `#` for comments. Extend them for your environment.
+- `product_terms.txt`: vendor, product and ops words. A candidate made only of these words (and stopwords) is not a person ("Windows Defender", "Brute Force"), unless an honorific says otherwise ("Mr. Jenkins").
+- `first_names.txt`: about 980 given names from eight regions. They corroborate weak rules and drive lowercase detection.
+- `ambiguous_names.txt`: given names that are also everyday words, places or faiths (`will`, `mark`, `jordan`, `christian`). They still count when capitalised in a name context, but never in lowercase.
 
 **Cascade, `cascade.py`.** The order is Tier 1 → mask → session memory → mask → Tier 2. Afterwards, adjacent PERSON spans are merged: "Kavishka" (from memory) + "Perera" (from NER) → "Kavishka Perera".
 
@@ -312,12 +320,14 @@ Measured with `python evaluation/run_eval.py`.
 | | Dev precision | Dev recall | Held-out precision | Held-out recall |
 |---|---|---|---|---|
 | Structured types (email, IP, MAC, card, SSN, IBAN, phone, secrets, usernames, hostnames) | 1.00 | 1.00 | 1.00 | 1.00 |
-| PERSON, spaCy + rules | 0.77 | 0.83 | 0.73 | 1.00 |
-| PERSON, rules only (no spaCy) | 0.62 | 0.83 | 0.47 | 1.00 |
+| PERSON, spaCy + rules | 1.00 | 1.00 | 1.00 | 1.00 |
+| PERSON, rules only (no spaCy) | 1.00 | 1.00 | 0.89 | 1.00 |
+
+Before the name lists were connected (2026-11-19), PERSON scored 0.77 / 0.83 dev and 0.73 / 1.00 held-out with spaCy, and 0.62 / 0.83 dev and 0.47 / 1.00 held-out without it.
 
 **How to read this:**
 - **Structured PII is reliable.** That covers most of the PII in security logs; Tier 1 caught 83% of all findings in the benchmark.
-- **Names are the weak spot.** Misses are lowercase names never seen before ("carlos garcia") and possessives ("Kenji Sato's"). False positives are Title-Case product names: "Load Balancer", "CrowdStrike Falcon", "Windows Defender".
+- **Names are still the weak spot,** but much less so. The product list, possessives, name lists and lowercase detection fixed every dev-set error. **The dev score is optimistic:** those fixes were built from the dev errors. The held-out set was not used for tuning, but it has only 8 names. Known gaps: a lowercase surname is dropped when no sentence follows ("the kenji tanaka account" → only "kenji"), and lowercase names missing from `first_names.txt` are still missed.
 - **A false positive costs utility, not privacy.** "Jenkins" becomes `USER_004`: over-protection. A false negative is a leak.
 - **The sets are small and labelled by the author.** Treat these numbers as a smoke test, not a benchmark. Section 7 explains how to get trustworthy numbers.
 
@@ -388,10 +398,7 @@ Accuracy is the product. A privacy tool that leaks, or that destroys the logs, w
    - Labelled by two people, with disagreements resolved.
    - Kept in `evaluation/datasets/`, with a frozen held-out split.
    - CI fails if recall on structured types drops.
-2. **Better name precision:**
-   - a first-name gazetteer (multi-cultural) as a corroboration signal for the weak rules;
-   - a product/vendor-name list (Defender, Falcon, Jenkins, Tomcat …) as a negative signal;
-   - possessive handling ("Kenji Sato's").
+2. **Better name precision:** done on 2026-11-19. There's a first-name list that corroborates weak rules and finds lowercase names, a product/vendor list as a negative signal, and possessive handling. See §3.3.
 3. **Better name recall:** an optional transformer NER backend (e.g. a small fine-tuned BERT/GLiNER) behind the same `NERDetector` interface, used when latency allows.
 4. **Measure resolution.**
    - A labelled set of pairs (same person / different person).

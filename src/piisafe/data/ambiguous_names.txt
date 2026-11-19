@@ -8,3 +8,7 @@ lance major melody miles norm penny pearl rocky rusty shad sol star stone sunny
 tanner tina victor violet win woody young ali dev om neel hari ravi kiran asha
 li yi bo lan lin yu kai hao fang ming hua jun jie long tao an minh duc
 mann maya noa nur sara sana hina rana mona lina hana sam ben dan tim ted ed meg
+# Given names that are also places, months, faiths or common log words
+jordan austin dallas houston denver phoenix orlando savannah aurora florence georgia
+carolina virginia victoria sydney paris london chelsea india china israel kenya lima
+christian chris christina crystal summer autumn winter

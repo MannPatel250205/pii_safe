@@ -16,7 +16,7 @@ Status as of **2026-11-19**, version **0.1.0**.
 | **Structured PII** (regex + validators) | Email, IPv4/IPv6, MAC address, credit card (Luhn + issuer check), US SSN, IBAN (mod-97), phone numbers (via Google `phonenumbers`), internal hostnames (`.local`, `.corp`, `.internal`, `.lan` …) |
 | **Secrets** | JWTs, AWS keys, `Bearer …` tokens, `password=` / `token:` pairs, passwords in URLs, PEM headers |
 | **Usernames** | sshd formats (`for X from`, `Invalid user X`), `DOMAIN\user`, `user=` / `login:` keys, URL users |
-| **Person names** | Log-aware rules (honorifics, name + action verb, cue words), with optional spaCy `en_core_web_sm` corroboration |
+| **Person names** | Log-aware rules (honorifics, name + action verb, cue words, "X and Y" lists), possessives, unseen lowercase names from a ~980-name first-name list, a product/vendor deny-list, and optional spaCy `en_core_web_sm` corroboration |
 | **Session memory** | Names seen earlier in a session are caught again later, including lowercase forms of names with 6+ letters |
 | **Custom identifiers** | Your own regexes in the policy (e.g. `EMP-\d+` → `EMP_001`) |
 | **Evasion handling** | Unicode normalisation; looks inside base64, hex and %-encoded tokens |
@@ -67,10 +67,11 @@ Status as of **2026-11-19**, version **0.1.0**.
 | | Precision | Recall |
 |---|---|---|
 | Structured PII | 1.00 | 1.00 |
-| Person names, spaCy + rules (held-out set) | 0.73 | 1.00 |
-| Person names, rules only (held-out set) | 0.47 | 1.00 |
+| Person names, spaCy + rules (held-out set) | 1.00 | 1.00 |
+| Person names, rules only (held-out set) | 0.89 | 1.00 |
 
-- **Performance:** about 0.6 ms per line at p50 and 5 ms at p99, or about 450–500 lines/s on one core with spaCy.
+- **Before the name lists were connected** (2026-11-19), names scored 0.73 (spaCy) and 0.47 (rules only) precision on the same held-out set. That set has only 8 names, so the gain is real, but the exact figures are not reliable.
+- **Performance:** about 0.7 ms per line at p50 and 7 ms at p99, or about 450 lines/s on one core with spaCy.
 - **Leak check:** in the benchmark, none of the known names or emails appeared in the output.
 
 ---
@@ -81,8 +82,8 @@ Status as of **2026-11-19**, version **0.1.0**.
 
 - **Small evaluation set.** The figures come from 71 hand-labelled lines written by the author. Treat them as a smoke test, not a benchmark.
 - **Names are the weak spot.**
-  - Missed: lowercase names never seen before in the session (`carlos garcia`) and possessives (`Kenji Sato's`). A miss is a **leak**.
-  - Over-flagged: Title-Case product names (`Load Balancer`, `Windows Defender`, `Jenkins`). This costs usefulness, not privacy.
+  - Missed: lowercase names that aren't in `first_names.txt`, and a lowercase surname that isn't followed by a sentence-like word (`the kenji tanaka account` protects only `kenji`). A miss is a **leak**.
+  - Over-flagged: Title-Case product names missing from `product_terms.txt`. Add your own tools there. This costs usefulness, not privacy.
 - **Resolution thresholds are hand-set**, not learned from data. Merge accuracy has not been measured at scale.
 - **English only.**
 
@@ -117,10 +118,7 @@ Status as of **2026-11-19**, version **0.1.0**.
    - labelled by two people;
    - a frozen held-out split;
    - a CI gate that fails if recall drops.
-2. **Better name precision:**
-   - a multi-cultural first-name gazetteer;
-   - a product/vendor deny-list (Defender, Falcon, Jenkins, Tomcat …);
-   - handling for possessives.
+2. **Better name precision:** done on 2026-11-19 (first-name list, product deny-list, possessives, lowercase names).
 3. **Better name recall:** an optional transformer NER backend (e.g. GLiNER or a small fine-tuned BERT) behind the existing `NERDetector` interface.
 4. **Measured resolution:** a labelled set of same-person / different-person pairs, with thresholds fitted to the data.
 5. **More entity types:** date of birth in context, street addresses, passport / Aadhaar / PAN / NI numbers, bank accounts and driver's licences, each with positive and negative tests.
