@@ -33,8 +33,10 @@ jobs:
       - run: mypy src
       - run: pytest
       - run: piisafe scan examples/security.log --fail-over 101
-      # Smoke test only: run_eval.py reports precision/recall but always exits 0.
-      - run: python evaluation/run_eval.py
+      # Detection quality gate: fails if precision/recall drop below evaluation/thresholds.json.
+      - run: python evaluation/run_eval.py --gate
+        if: matrix.python == '3.12'
+      - run: python evaluation/run_resolution_eval.py --gate
         if: matrix.python == '3.12'
 
   # Postgres, KMS and cross-writer tests. One version is enough: they exercise
@@ -76,7 +78,7 @@ jobs:
           cache-dependency-path: pyproject.toml
       - run: pip install -e ".[dev,server,agents,ner]" && python -m spacy download en_core_web_sm
       - run: pytest -rs
-      - run: python evaluation/run_eval.py
+      - run: python evaluation/run_eval.py --gate
 
   # Builds the image and starts the compose stack (dashboard + Postgres) end to end.
   docker:

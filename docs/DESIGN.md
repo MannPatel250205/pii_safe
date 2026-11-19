@@ -130,7 +130,17 @@ Every detector returns `Span(start, end, text, entity_type, score, tier, detecto
 | SECRET | JWT, AWS keys, `Bearer …`, `password=…` / `token: …`, URL passwords, PEM headers | — |
 | USERNAME | sshd formats (`for X from`, `Invalid user X from`), `DOMAIN\user`, `user=` / `login:` keys, URL user | — |
 | HOSTNAME | FQDNs on internal TLDs (`.local`, `.corp`, `.internal`, `.lan`, …) | — |
+| IN_AADHAAR | 12 digits, first 2–9, optional 4-4-4 grouping | Verhoeff check digit; all-same digits rejected |
+| IN_PAN | `AAAPA9999A` | 4th letter must be a valid holder-type code |
+| UK_NINO | two letters, six digits, A–D | never-issued prefixes (BG, GB, NK, KN, NT, TN, ZZ) excluded |
+| PASSPORT_NUMBER | 6–9 alphanumerics after `passport (no / number / #)` | at least 4 digits |
+| DRIVERS_LICENSE | after `driver's / driving licence` or `DL no / DL:` | at least 4 digits |
+| BANK_ACCOUNT | 6–18 digits after `a/c no`, `account number`, `bank account` | — |
+| DATE_OF_BIRTH | a date after `DOB`, `date of birth`, `born (on)`, `birthday` | a real date, 1900–today |
+| STREET_ADDRESS | house number + 1–4 capitalised words + a street suffix | the words can't all be product terms |
 | custom | regexes from `policy.custom_patterns`, e.g. `EMP-\d+` | — |
+
+Keyword-backed types (passport, licence, bank account, date of birth) have priority 7, so they beat checksum-only matches (card, Aadhaar: 8) on the same digits. Phone matches right after `version`, `v`, `build`, `release` or `rev` are dropped (`version 149.962.2887`).
 
 **Session memory, `memory.py`.** Every name-like value (PERSON, USERNAME, …) that the session has seen is compiled into a single regex. Later mentions are caught deterministically, including lowercase ones for names of 6+ letters ("kavishka").
 
@@ -333,7 +343,16 @@ Before the name lists were connected (2026-11-19), PERSON scored 0.77 / 0.83 dev
 
 ### Entity resolution
 
-Covered by unit tests (`tests/unit/test_resolution.py`), not yet measured at scale:
+**Identity resolution** (`evaluation/run_resolution_eval.py`, 65 labelled name pairs, 33 of them the same person):
+
+| Setting | Same person merged | Same person sent to review | Different people wrongly merged |
+|---|---|---|---|
+| Isolated (only the two names in the session) | 58% | 33% | 3 of 32 |
+| Crowded (three other people in between) | 24% | 58% | 0 of 32 |
+
+The 3 wrong merges are real-name pairs one letter apart (Frances/Francis, Marina/Marian, Kiran/Karan). A threshold sweep found no setting that removes them and still auto-merges typos: zero wrong merges needs `merge_threshold` 0.88 or higher, where only case, accent and first-name/full-name matches merge. Nicknames (Bob/Robert) are never merged.
+
+Examples from the unit tests (`tests/unit/test_resolution.py`):
 
 | Case | Outcome |
 |---|---|
@@ -393,18 +412,11 @@ The SDK is the product core, and everything below wraps it rather than forking i
 
 Accuracy is the product. A privacy tool that leaks, or that destroys the logs, won't be adopted.
 
-1. **A real labelled dataset.**
-   - 1–2k lines from realistic sources: sshd/auth logs, Windows events, web access logs, SIEM alerts, helpdesk tickets.
-   - Labelled by two people, with disagreements resolved.
-   - Kept in `evaluation/datasets/`, with a frozen held-out split.
-   - CI fails if recall on structured types drops.
+1. **A real labelled dataset.** Partly done on 2026-11-19: `evaluation/generate.py` builds a 1,200-line labelled set across five sources, and `run_eval.py --gate` fails CI below `evaluation/thresholds.json`. Still needed: 1–2k *real* lines labelled by two people, with disagreements resolved and a frozen held-out split.
 2. **Better name precision:** done on 2026-11-19. There's a first-name list that corroborates weak rules and finds lowercase names, a product/vendor list as a negative signal, and possessive handling. See §3.3.
-3. **Better name recall:** an optional transformer NER backend (e.g. a small fine-tuned BERT/GLiNER) behind the same `NERDetector` interface, used when latency allows.
-4. **Measure resolution.**
-   - A labelled set of pairs (same person / different person).
-   - Report merge precision and split rate.
-   - Fit the weights and thresholds to the data instead of hand-setting them.
-5. **More entity types:** date of birth in context, street addresses, passport / Aadhaar / PAN / NI numbers, bank account numbers, driver's licence numbers. Each type needs both positive and negative tests.
+3. **Better name recall:** `ner: gliner` (`GlinerNER` in `ner.py`) plugs a GLiNER model into the same slot spaCy uses: extra recall plus corroboration for weak rules. Tested only against a stand-in model; not yet measured on the datasets.
+4. **Measure resolution.** Done: `evaluation/run_resolution_eval.py` reports merge rates and wrong merges, sweeps thresholds, and gates CI on the baseline. The finding is in §4: string similarity alone can't separate close real names from typos, so better resolution needs new evidence (for example co-occurring emails or usernames), not new thresholds.
+5. **More entity types:** done (see the Tier 1 table in §3.3).
 
 ### Phase 2: agent integrations (the proposal's v1 scope)
 

@@ -43,9 +43,10 @@ def _ner_for(policy: Policy, mode: str) -> NERDetector | None:
         return None
     enabled = frozenset(policy.enabled_types())
     st = policy.settings
-    key = (mode, st.spacy_model, st.min_ner_score, enabled, frozenset(st.ner_types))
+    model = st.gliner_model if mode == "gliner" else st.spacy_model
+    key = (mode, model, st.min_ner_score, enabled, frozenset(st.ner_types))
     if key not in _NER_CACHE:
-        _NER_CACHE[key] = NERDetector(mode, st.spacy_model, set(enabled), st.min_ner_score, set(st.ner_types))
+        _NER_CACHE[key] = NERDetector(mode, model, set(enabled), st.min_ner_score, set(st.ner_types))
     return _NER_CACHE[key]
 
 
@@ -77,7 +78,7 @@ class PIISafeGuard:
                 else SQLite in state_dir).
             key_provider: where the master key comes from (default: $PIISAFE_KEY_PROVIDER, else
                 local file). See piisafe.keyproviders — e.g. "aws-kms", "vault-transit".
-            ner: Override settings.ner (auto | spacy | heuristic | off).
+            ner: Override settings.ner (auto | spacy | gliner | heuristic | off).
             block_mode: "raise" -> PolicyBlockError; "redact" -> treat block as redact.
             create_keys: Generate a master key if none exists (False for read-only use).
         """

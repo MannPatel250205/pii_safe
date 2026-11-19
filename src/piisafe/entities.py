@@ -17,6 +17,14 @@ USERNAME = "USERNAME"
 PERSON = "PERSON"
 ORGANIZATION = "ORGANIZATION"
 LOCATION = "LOCATION"
+DATE_OF_BIRTH = "DATE_OF_BIRTH"
+STREET_ADDRESS = "STREET_ADDRESS"
+IN_AADHAAR = "IN_AADHAAR"
+IN_PAN = "IN_PAN"
+PASSPORT_NUMBER = "PASSPORT_NUMBER"
+UK_NINO = "UK_NINO"
+BANK_ACCOUNT = "BANK_ACCOUNT"
+DRIVERS_LICENSE = "DRIVERS_LICENSE"
 
 BUILTIN_TYPES = (
     EMAIL_ADDRESS,
@@ -32,7 +40,18 @@ BUILTIN_TYPES = (
     PERSON,
     ORGANIZATION,
     LOCATION,
+    DATE_OF_BIRTH,
+    STREET_ADDRESS,
+    IN_AADHAAR,
+    IN_PAN,
+    PASSPORT_NUMBER,
+    UK_NINO,
+    BANK_ACCOUNT,
+    DRIVERS_LICENSE,
 )
+
+# National / government identifiers: treated like US_SSN by the default policy.
+GOVERNMENT_IDS = frozenset({US_SSN, IN_AADHAAR, IN_PAN, PASSPORT_NUMBER, UK_NINO, DRIVERS_LICENSE})
 
 # Alias prefixes. Counters are kept per prefix, so several types may share one.
 DEFAULT_ALIAS_PREFIX: dict[str, str] = {
@@ -49,12 +68,28 @@ DEFAULT_ALIAS_PREFIX: dict[str, str] = {
     SECRET: "SECRET",
     ORGANIZATION: "ORG",
     LOCATION: "LOC",
+    DATE_OF_BIRTH: "DOB",
+    STREET_ADDRESS: "ADDR",
+    IN_AADHAAR: "AADHAAR",
+    IN_PAN: "PAN",
+    PASSPORT_NUMBER: "PASSPORT",
+    UK_NINO: "NINO",
+    BANK_ACCOUNT: "BANKACCT",
+    DRIVERS_LICENSE: "DL",
 }
 
 # Relative harm if the value leaks; used by the exposure scorer.
 SENSITIVITY: dict[str, float] = {
     CREDIT_CARD: 10.0,
     US_SSN: 10.0,
+    IN_AADHAAR: 10.0,
+    PASSPORT_NUMBER: 9.0,
+    UK_NINO: 9.0,
+    IN_PAN: 8.0,
+    BANK_ACCOUNT: 8.0,
+    DRIVERS_LICENSE: 8.0,
+    DATE_OF_BIRTH: 7.0,
+    STREET_ADDRESS: 6.0,
     SECRET: 9.0,
     IBAN_CODE: 8.0,
     EMAIL_ADDRESS: 6.0,

@@ -14,11 +14,10 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterator
-from functools import cache
-from importlib import resources
 
 from piisafe import entities as E
 from piisafe.detection.patterns import resolve_overlaps
+from piisafe.detection.wordlists import first_names, product_terms
 from piisafe.models import Span
 
 _NAME = r"[A-Z][a-z\u00e0-\u00f6\u00f8-\u00ff]+(?:[-'][A-Z]?[a-z\u00e0-\u00f6\u00f8-\u00ff]+)*"
@@ -34,7 +33,13 @@ _VERBS = (
 )
 _CUES = (
     "by|to|from|with|cc|contact|assignee|owner|reviewer|approver|employee|analyst|"
-    "manager|customer|patient|client|user|dear|hi|hello|thanks|regards|attn|name"
+    "manager|customer|patient|client|user|dear|hi|hello|thanks|regards|attn|name|"
+    "holder|beneficiary|payee|recipient|requester|sender"
+)
+# Personal belongings / records after a possessive: "Eero's laptop", "Priya Nair's account".
+_OWNED = (
+    "account|accounts|laptop|password|device|mailbox|phone|email|credentials|session|machine|"
+    "workstation|badge|access|profile|record|records|details|files|data|desk|manager|vpn|token"
 )
 _HONORIFIC = r"Mr|Mrs|Ms|Miss|Mx|Dr|Prof|Sir|Madam|Shri|Smt"
 
@@ -42,6 +47,13 @@ _HONORIFIC = r"Mr|Mrs|Ms|Miss|Mx|Dr|Prof|Sir|Madam|Shri|Smt"
 # Weak rules (cue word, any capitalised pair) also fire on product and team
 # names, so when spaCy is available they must be corroborated by a spaCy PERSON.
 WEAK_RULES = frozenset({"cue_name", "capitalised_pair"})
+# Of the weak rules, only these need a spaCy PERSON (or a known first name) when spaCy
+# is installed. A cue word ('assigned to', 'holder') is evidence enough once the
+# product list has removed tool names.
+SPACY_CHECKED_RULES = frozenset({"capitalised_pair"})
+# 'for' is too common a word ('for Production', 'for New York'): a name after it
+# needs a known first name or a spaCy PERSON in every mode, not just with spaCy.
+LIST_BACKED_RULES = frozenset({"for_name"})
 
 _RULES: tuple[tuple[re.Pattern[str], float, str], ...] = (
     (re.compile(rf"\b(?:{_HONORIFIC})\.?[ \t]+({_FULL})"), 0.9, "honorific"),
@@ -53,7 +65,11 @@ _RULES: tuple[tuple[re.Pattern[str], float, str], ...] = (
         0.75,
         "name_verb",
     ),
-    (re.compile(rf"(?i:\b(?:{_CUES}))[ \t]*:?[ \t]+({_FULL})\b"), 0.65, "cue_name"),
+    # At most 3 spaces after the cue, so it can't reach across a masked value
+    # ('Account Name: <masked> Source Network Address').
+    (re.compile(rf"(?i:\b(?:{_CUES}))[ \t]{{0,3}}:?[ \t]{{1,3}}({_FULL})\b"), 0.65, "cue_name"),
+    (re.compile(rf"\b({_FULL})['’]s[ \t]+(?:{_OWNED})\b"), 0.75, "possessive"),
+    (re.compile(rf"\bfor[ \t]{{1,3}}({_FULL})\b"), 0.65, "for_name"),
     (re.compile(rf"\b({_NAME}(?:[ \t]+{_NAME}){{1,2}})\b"), 0.55, "capitalised_pair"),
 )
 
@@ -89,27 +105,12 @@ STOPWORDS = frozenset(
     Cluster Node Nodes Pod Container Instance Gateway Proxy Router Switch Endpoint Agent
     Sensor Monitor Monitoring Dashboard Console Portal Center Centre Operations Admins
     Weekly Daily Monthly Hourly Nightly Annual Main Master Primary Secondary Blue Green
-    Anyone Nobody Call Email Phone Card Payment Order Invoice
+    Anyone Nobody Call Email Phone Card Payment Order Invoice Address Workstation Logon
     """.split()  # noqa: SIM905 - readable word list
 )
 
 
-@cache
-def _word_list(name: str) -> frozenset[str]:
-    """A bundled list from piisafe/data: whitespace-separated, '#' comments, case-insensitive."""
-    text = resources.files("piisafe").joinpath(f"data/{name}").read_text("utf-8")
-    return frozenset(
-        w.casefold() for line in text.splitlines() if not line.lstrip().startswith("#") for w in line.split()
-    )
-
-
-def product_terms() -> frozenset[str]:
-    return _word_list("product_terms.txt")
-
-
-def first_names() -> frozenset[str]:
-    """Given names, minus those that are also everyday words ('will', 'mark')."""
-    return _word_list("first_names.txt") - _word_list("ambiguous_names.txt")
+__all__ = ["NERDetector", "first_names", "is_known_first_name", "product_terms"]
 
 
 _VERB_SET = frozenset(_VERBS.split("|"))
@@ -289,8 +290,45 @@ class SpacyNER:
             yield Span(start, start + len(value), value, etype, score, 2, "ner:spacy", priority=33)
 
 
+_GLINER_LABELS = {"person": E.PERSON, "organization": E.ORGANIZATION, "location": E.LOCATION}
+
+
+class GlinerNER:
+    """Optional transformer NER (GLiNER, zero-shot span labelling). ``pip install 'piisafe[transformer]'``.
+
+    Slower and heavier than spaCy (PyTorch, a model download on first use, roughly
+    0.5–1 GB of RAM), but much better at names in unusual contexts. It plays the
+    same role as spaCy: extra recall, and corroboration for the weak rules.
+    """
+
+    name = "gliner"
+
+    def __init__(self, model: str = "urchade/gliner_small-v2.1", threshold: float = 0.5,
+                 labels: tuple[str, ...] = ("person",)) -> None:
+        from gliner import GLiNER  # noqa: PLC0415 - optional dependency
+
+        self.model = model
+        self.threshold = threshold
+        self.labels = list(labels)
+        self._model = GLiNER.from_pretrained(model)
+
+    def detect(self, text: str) -> Iterator[Span]:
+        for ent in self._model.predict_entities(text, self.labels, threshold=self.threshold):
+            etype = _GLINER_LABELS.get(str(ent["label"]).lower())
+            if etype is None:
+                continue
+            trimmed = _trim_stopwords(text[ent["start"]:ent["end"]], ent["start"])
+            if trimmed is None:
+                continue
+            value, start = trimmed
+            value = _strip_possessive(value)
+            if not _plausible_name(value) or _is_product(value):
+                continue
+            yield Span(start, start + len(value), value, etype, float(ent["score"]), 2, "ner:gliner", priority=32)
+
+
 class NERDetector:
-    """Tier 2 facade. ``mode``: auto | spacy | heuristic | off."""
+    """Tier 2 facade. ``mode``: auto | spacy | gliner | heuristic | off."""
 
     tier = 2
 
@@ -309,7 +347,8 @@ class NERDetector:
         self.min_score = min_score
         self.enabled_types = enabled_types
         self._heuristic = HeuristicNER() if mode != "off" else None
-        self._spacy: SpacyNER | None = None
+        # The model-based backend (spaCy or GLiNER); None means rules only.
+        self._spacy: SpacyNER | GlinerNER | None = None
         self.spacy_error: str | None = None
         if mode in ("auto", "spacy"):
             try:
@@ -318,12 +357,15 @@ class NERDetector:
                 if mode == "spacy":
                     raise
                 self.spacy_error = f"{type(exc).__name__}: {exc}"
+        elif mode == "gliner":
+            labels = tuple(k for k, v in _GLINER_LABELS.items() if v in self.ner_types) or ("person",)
+            self._spacy = GlinerNER(model, max(min_score, 0.3), labels)  # an explicit choice: fail loudly
 
     @property
     def backend(self) -> str:
         if self._heuristic is None:
             return "off"
-        return "spacy+heuristic" if self._spacy else "heuristic"
+        return f"{self._spacy.name}+heuristic" if self._spacy else "heuristic"
 
     def detect(self, masked_text: str, *, full: bool = True) -> list[Span]:
         """``full=False`` runs only the cheap lower-case name check (lines with no capitals)."""
@@ -336,16 +378,19 @@ class NERDetector:
             heuristic = list(self._heuristic.detect(masked_text))
             from_spacy = list(self._spacy.detect(masked_text))
             persons = [s for s in from_spacy if s.entity_type == E.PERSON]
-            # A weak rule needs corroboration: a spaCy PERSON, or a known first name.
+            # A weak rule needs corroboration: a model PERSON, or a known first name.
             heuristic = [
                 h for h in heuristic
-                if h.detector.removeprefix("ner:") not in WEAK_RULES
+                if h.detector.removeprefix("ner:") not in SPACY_CHECKED_RULES | LIST_BACKED_RULES
                 or any(h.overlaps(p) for p in persons)
                 or is_known_first_name(h.text.split()[0])
             ]
             spans = heuristic + from_spacy + lower
         else:
-            spans = list(self._heuristic.detect(masked_text)) + lower
+            spans = [
+                h for h in self._heuristic.detect(masked_text)
+                if h.detector.removeprefix("ner:") not in LIST_BACKED_RULES or is_known_first_name(h.text.split()[0])
+            ] + lower
         # Filter before resolving overlaps: a dropped spaCy ORG must not knock out
         # the PERSON a rule found on the same words ('Kenji Sato's account').
         return resolve_overlaps([

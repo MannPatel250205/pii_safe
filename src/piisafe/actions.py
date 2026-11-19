@@ -15,7 +15,7 @@ def mask(entity_type: str, value: str, ch: str = "*") -> str:
     if entity_type == E.EMAIL_ADDRESS and "@" in value:
         local, domain = value.split("@", 1)
         return f"{local[:1]}{ch * 3}@{domain}"
-    if entity_type in (E.CREDIT_CARD, E.PHONE_NUMBER, E.US_SSN, E.IBAN_CODE):
+    if entity_type in (E.CREDIT_CARD, E.PHONE_NUMBER, E.IBAN_CODE, E.BANK_ACCOUNT) or entity_type in E.GOVERNMENT_IDS:
         total = sum(c.isalnum() for c in value)
         keep_from = total - 4
         out, seen = [], 0

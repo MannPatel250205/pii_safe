@@ -46,8 +46,12 @@ def canonicalize(entity_type: str, value: str) -> str:
                 pass
         digits = re.sub(r"\D", "", v)
         return ("+" + digits) if v.startswith("+") else digits
-    if entity_type in (E.CREDIT_CARD, E.US_SSN):
+    if entity_type in (E.CREDIT_CARD, E.US_SSN, E.IN_AADHAAR, E.BANK_ACCOUNT):
         return re.sub(r"\D", "", v)
+    if entity_type in (E.IN_PAN, E.UK_NINO, E.PASSPORT_NUMBER, E.DRIVERS_LICENSE):
+        return re.sub(r"[\s-]", "", v).upper()
+    if entity_type == E.STREET_ADDRESS:
+        return " ".join(v.casefold().replace(",", " ").split())
     if entity_type == E.MAC_ADDRESS:
         return re.sub(r"[^0-9a-f]", "", v.lower())
     if entity_type == E.IBAN_CODE:

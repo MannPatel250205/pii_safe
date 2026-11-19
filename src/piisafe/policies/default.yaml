@@ -12,7 +12,8 @@ default_action: pseudonymise
 
 settings:
   phone_regions: [US, IN, GB]   # regions used to parse numbers written without +country
-  ner: auto                     # auto | spacy | heuristic | off
+  ner: auto                     # auto | spacy | gliner | heuristic | off  (gliner: pip install "piisafe[transformer]")
+  # gliner_model: urchade/gliner_small-v2.1
   spacy_model: en_core_web_sm
   min_ner_score: 0.5
   ner_types: [PERSON]           # add ORGANIZATION / LOCATION for prose; on logs they are mostly noise
@@ -74,15 +75,27 @@ field_hints:
   token: SECRET
   secret: SECRET
   ssn: US_SSN
+  aadhaar: IN_AADHAAR
+  passport: PASSPORT_NUMBER
+  passport_number: PASSPORT_NUMBER
+  nino: UK_NINO
+  ni_number: UK_NINO
+  dob: DATE_OF_BIRTH
+  date_of_birth: DATE_OF_BIRTH
+  birth_date: DATE_OF_BIRTH
+  account_number: BANK_ACCOUNT
+  bank_account: BANK_ACCOUNT
+  drivers_license: DRIVERS_LICENSE
+  license_number: DRIVERS_LICENSE
   city: LOCATION
-  address: LOCATION
-  street: LOCATION
+  address: STREET_ADDRESS
+  street: STREET_ADDRESS
 
 policies:
   - name: internal_analysis
     hook_type: on_prompt
     rules:
-      - entity_type: [SECRET, CREDIT_CARD, US_SSN, IBAN_CODE]
+      - entity_type: [SECRET, CREDIT_CARD, US_SSN, IN_AADHAAR, IN_PAN, PASSPORT_NUMBER, UK_NINO, DRIVERS_LICENSE, IBAN_CODE, BANK_ACCOUNT]
         action: redact
       - entity_type: '*'
         action: pseudonymise
@@ -90,7 +103,7 @@ policies:
   - name: rag_context
     hook_type: on_context
     rules:
-      - entity_type: [SECRET, CREDIT_CARD, US_SSN, IBAN_CODE]
+      - entity_type: [SECRET, CREDIT_CARD, US_SSN, IN_AADHAAR, IN_PAN, PASSPORT_NUMBER, UK_NINO, DRIVERS_LICENSE, IBAN_CODE, BANK_ACCOUNT]
         action: redact
       - entity_type: '*'
         action: pseudonymise
@@ -100,7 +113,7 @@ policies:
     rules:
       - entity_type: SECRET
         action: block
-      - entity_type: [CREDIT_CARD, US_SSN, IBAN_CODE]
+      - entity_type: [CREDIT_CARD, US_SSN, IN_AADHAAR, IN_PAN, PASSPORT_NUMBER, UK_NINO, DRIVERS_LICENSE, IBAN_CODE, BANK_ACCOUNT]
         action: redact
       - entity_type: IP_ADDRESS
         action: redact
@@ -108,9 +121,9 @@ policies:
   - name: memory_guard
     hook_type: on_memory
     rules:
-      - entity_type: [EMAIL_ADDRESS, SECRET, CREDIT_CARD, US_SSN]
+      - entity_type: [EMAIL_ADDRESS, SECRET, CREDIT_CARD, US_SSN, IN_AADHAAR, IN_PAN, PASSPORT_NUMBER, UK_NINO, DRIVERS_LICENSE]
         action: block
-      - entity_type: IBAN_CODE
+      - entity_type: [IBAN_CODE, BANK_ACCOUNT, DATE_OF_BIRTH, STREET_ADDRESS]
         action: redact
 
   - name: external_export

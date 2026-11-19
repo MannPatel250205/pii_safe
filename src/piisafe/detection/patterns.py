@@ -11,8 +11,10 @@ import ipaddress
 import re
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
+from datetime import date
 
 from piisafe import entities as E
+from piisafe.detection.wordlists import product_terms
 from piisafe.models import Span
 from piisafe.normalize import MAX_DECODE_DEPTH, find_encoded_segments
 
@@ -89,14 +91,100 @@ def iban_valid(value: str) -> bool:
     return num % 97 == 1
 
 
+_VERHOEFF_D = (
+    (0, 1, 2, 3, 4, 5, 6, 7, 8, 9), (1, 2, 3, 4, 0, 6, 7, 8, 9, 5), (2, 3, 4, 0, 1, 7, 8, 9, 5, 6),
+    (3, 4, 0, 1, 2, 8, 9, 5, 6, 7), (4, 0, 1, 2, 3, 9, 5, 6, 7, 8), (5, 9, 8, 7, 6, 0, 4, 3, 2, 1),
+    (6, 5, 9, 8, 7, 1, 0, 4, 3, 2), (7, 6, 5, 9, 8, 2, 1, 0, 4, 3), (8, 7, 6, 5, 9, 3, 2, 1, 0, 4),
+    (9, 8, 7, 6, 5, 4, 3, 2, 1, 0),
+)
+_VERHOEFF_P = (
+    (0, 1, 2, 3, 4, 5, 6, 7, 8, 9), (1, 5, 7, 6, 2, 8, 3, 0, 9, 4), (5, 8, 0, 3, 7, 9, 6, 1, 4, 2),
+    (8, 9, 1, 6, 0, 4, 3, 5, 2, 7), (9, 4, 5, 3, 1, 2, 6, 8, 7, 0), (4, 2, 8, 6, 5, 7, 3, 9, 0, 1),
+    (2, 7, 9, 3, 8, 0, 6, 4, 1, 5), (7, 0, 4, 6, 9, 1, 3, 2, 5, 8),
+)
+
+
+def verhoeff_valid(value: str) -> bool:
+    """Aadhaar's check digit (Verhoeff). Rejects all-same digits such as 2222 2222 2222."""
+    digits = [int(c) for c in value if c.isdigit()]
+    if len(set(digits)) == 1:
+        return False
+    c = 0
+    for i, d in enumerate(reversed(digits)):
+        c = _VERHOEFF_D[c][_VERHOEFF_P[i % 8][d]]
+    return c == 0
+
+
+_MONTHS = ("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+
+
+def birth_date_valid(value: str) -> bool:
+    """A real calendar date between 1900 and today (DD/MM and MM/DD both accepted)."""
+    v = value.lower().replace(",", " ").replace(".", " ")
+    nums = [int(n) for n in re.findall(r"\d+", v)]
+    month_word = next((i + 1 for i, m in enumerate(_MONTHS) if m in v), None)
+    if month_word is not None:
+        day = next((n for n in nums if n <= 31), None)
+        year = next((n for n in nums if n > 31), None)
+        candidates = [(year, month_word, day)] if day and year else []
+    elif len(nums) == 3 and nums[0] > 31:
+        candidates = [(nums[0], nums[1], nums[2])]
+    elif len(nums) == 3:
+        candidates = [(nums[2], nums[1], nums[0]), (nums[2], nums[0], nums[1])]
+    else:
+        return False
+    for y, m, d in candidates:
+        try:
+            born = date(y, m, d)
+        except (TypeError, ValueError):
+            continue
+        if date(1900, 1, 1) <= born <= date.today():
+            return True
+    return False
+
+
+def street_address_valid(value: str) -> bool:
+    """'3 Load Balancer Way' is a rollout, not an address: the name words can't all be product terms."""
+    words = value.split()[1:-1]
+    terms = product_terms()
+    return not words or not all(w.strip(",.").casefold() in terms for w in words)
+
+
+def _has_digits(n: int) -> Callable[[str], bool]:
+    return lambda value: sum(c.isdigit() for c in value) >= n
+
+
+def _mentions(pattern: str) -> Callable[[str], bool]:
+    """Cheap prefilter: the line contains a context keyword (case-insensitive)."""
+    rx = re.compile(pattern, re.IGNORECASE)
+    return lambda text: rx.search(text) is not None
+
+
 # ------------------------------------------------------------------ patterns
+
+_VERSION_BEFORE = re.compile(r"(?i)\b(?:version|ver|v|build|release|rev)\.?[ \t]*$")
+
+_MONTH_NAME = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
+_DATE = (
+    rf"(?:\d{{4}}[-/.]\d{{1,2}}[-/.]\d{{1,2}}|\d{{1,2}}[-/.]\d{{1,2}}[-/.]\d{{4}}"
+    rf"|\d{{1,2}}(?:st|nd|rd|th)?[ \t]+{_MONTH_NAME},?[ \t]+\d{{4}}"
+    rf"|{_MONTH_NAME}[ \t]+\d{{1,2}}(?:st|nd|rd|th)?,?[ \t]+\d{{4}})"
+)
+_NUMBER_WORD = r"(?:\s*(?:no\.?|number|num|#))"
+_STREET_SUFFIX = (
+    r"Street|St|Road|Rd|Avenue|Ave|Lane|Ln|Drive|Dr|Boulevard|Blvd|Way|Court|Ct|Place|Pl|"
+    r"Terrace|Close|Crescent|Cres|Parkway|Pkwy|Highway|Hwy|Square|Sq|Marg|Nagar"
+)
 
 _OCTET = r"(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)"
 _SECRET_KEYS = (
     r"api[_-]?key|apikey|x-api-key|secret|client[_-]?secret|access[_-]?token|auth[_-]?token|"
     r"refresh[_-]?token|token|password|passwd|pass|pwd|private[_-]?key"
 )
-_USER_KEYS = r"user(?:name)?|login|account|acct|uid|usr|owner|actor|principal|sam_?account_?name"
+_USER_KEYS = (
+    r"user(?:name)?|login|account|acct|uid|usr|owner|actor|principal|sam_?account_?name|"
+    r"account[ \t]+name|target[ \t]+user[ \t]*name|subject[ \t]+user[ \t]*name"  # Windows events: 'Account Name: x'
+)
 _INTERNAL_TLDS = r"local|internal|corp|lan|intranet|ad|home|localdomain|priv"
 
 
@@ -179,6 +267,58 @@ BUILTIN_RECOGNIZERS: tuple[PatternRecognizer, ...] = (
         "us_ssn", E.US_SSN,
         re.compile(r"(?<![\d-])(?!000|666|9\d\d)\d{3}-(?!00)\d{2}-(?!0000)\d{4}(?![\d-])"),
         0.85, 9, prefilter=_has("-"),
+    ),
+    PatternRecognizer(
+        "in_aadhaar", E.IN_AADHAAR,
+        re.compile(r"(?<![\d-])[2-9]\d{3}([ -]?)\d{4}\1\d{4}(?![\d-])"),
+        0.9, 8, validator=verhoeff_valid, prefilter=_digits_at_least(12),
+    ),
+    PatternRecognizer(
+        "in_pan", E.IN_PAN,
+        re.compile(r"\b[A-Z]{3}[ABCFGHJLPT][A-Z]\d{4}[A-Z]\b"), 0.85, 9,
+    ),
+    PatternRecognizer(
+        "uk_nino", E.UK_NINO,
+        re.compile(
+            r"\b(?!BG|GB|KN|NK|NT|TN|ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z]"
+            r"(?: ?\d{2}){3} ?[A-D]\b"
+        ),
+        0.85, 9,
+    ),
+    PatternRecognizer(
+        "date_of_birth", E.DATE_OF_BIRTH,
+        re.compile(rf"(?i)\b(?:d\.?o\.?b\.?|date[ \t]+of[ \t]+birth|birth[ _-]?date|birthday|born(?:[ \t]+on)?)"
+                   rf"[ \t]*[:=]?[ \t]*({_DATE})"),
+        0.9, 7, group=1, validator=birth_date_valid, prefilter=_mentions(r"dob|d\.o\.b|birth|born"),
+    ),
+    PatternRecognizer(
+        "passport", E.PASSPORT_NUMBER,
+        re.compile(rf"(?i)\bpassport{_NUMBER_WORD}?[ \t]*[:=#]?[ \t]*([A-Z0-9]{{6,9}})\b"),
+        0.85, 7, group=1, validator=_has_digits(4), prefilter=_mentions("passport"),
+    ),
+    PatternRecognizer(
+        "bank_account", E.BANK_ACCOUNT,
+        re.compile(
+            rf"(?i)\b(?:(?:bank[ \t]+)?(?:account|acct|a/c){_NUMBER_WORD}|bank[ \t]+account|a/c)"
+            r"[ \t]*[:=#.]?[ \t]*(\d(?:[ -]?\d){5,17})(?![\d-])"
+        ),
+        0.85, 7, group=1, prefilter=_mentions(r"account|acct|a/c"),
+    ),
+    PatternRecognizer(
+        "drivers_license", E.DRIVERS_LICENSE,
+        re.compile(
+            rf"(?i)\b(?:driv(?:er'?s?|ing)[ \t]+licen[cs]e{_NUMBER_WORD}?|DL(?:{_NUMBER_WORD}|[ \t]*[:=]))"
+            r"[ \t]*[:=#]?[ \t]*([A-Z0-9][A-Z0-9-]{3,18}[A-Z0-9])(?![\w-])"
+        ),
+        0.85, 7, group=1, validator=_has_digits(4), prefilter=_mentions(r"licen[cs]e|\bDL\b"),
+    ),
+    PatternRecognizer(
+        "street_address", E.STREET_ADDRESS,
+        re.compile(
+            rf"\b\d{{1,5}}[A-Za-z]?,?[ \t]+(?:[A-Z][A-Za-z'.-]*[ \t]+){{1,4}}(?:{_STREET_SUFFIX})\b\.?"
+            r"(?:[ \t]+(?:NE|NW|SE|SW|N|S|E|W)\b)?"
+        ),
+        0.8, 14, validator=street_address_valid,
     ),
     PatternRecognizer(
         "iban", E.IBAN_CODE,
@@ -286,8 +426,8 @@ class Tier1Detector:
                 text, region, leniency=phonenumbers.Leniency.POSSIBLE
             )
             for m in matcher:
-                if (m.start, m.end) in seen:
-                    continue
+                if (m.start, m.end) in seen or _VERSION_BEFORE.search(text, max(0, m.start - 12), m.start):
+                    continue  # 'version 149.962.2887' is a version, not a dotted US number
                 if not (m.raw_string.startswith("+") or phonenumbers.is_valid_number(m.number)):
                     continue
                 seen.add((m.start, m.end))

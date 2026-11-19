@@ -1,0 +1,86 @@
+{
+  "_about": "Minimum precision/recall per NER backend, dataset and row, checked by `run_eval.py --gate` in CI. Floors sit just under the scores measured on 2026-11-19. Raise them when detection improves; lowering one needs a reason in the commit message, because a recall drop is a leak.",
+  "heuristic": {
+    "synthetic.jsonl": {
+      "STRUCTURED": {
+        "precision": 0.98,
+        "recall": 0.95
+      },
+      "PERSON": {
+        "precision": 0.97,
+        "recall": 0.9
+      },
+      "OVERALL": {
+        "precision": 0.98,
+        "recall": 0.94
+      }
+    },
+    "dev.jsonl": {
+      "STRUCTURED": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "PERSON": {
+        "precision": 0.9,
+        "recall": 1.0
+      }
+    },
+    "heldout.jsonl": {
+      "STRUCTURED": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "PERSON": {
+        "precision": 0.85,
+        "recall": 1.0
+      }
+    }
+  },
+  "spacy+heuristic": {
+    "synthetic.jsonl": {
+      "STRUCTURED": {
+        "precision": 0.98,
+        "recall": 0.95
+      },
+      "PERSON": {
+        "precision": 0.97,
+        "recall": 0.85
+      },
+      "OVERALL": {
+        "precision": 0.98,
+        "recall": 0.93
+      }
+    },
+    "dev.jsonl": {
+      "STRUCTURED": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "PERSON": {
+        "precision": 0.9,
+        "recall": 1.0
+      }
+    },
+    "heldout.jsonl": {
+      "STRUCTURED": {
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "PERSON": {
+        "precision": 0.9,
+        "recall": 1.0
+      }
+    }
+  },
+  "resolution": {
+    "_about": "Baseline for run_resolution_eval.py --gate (2026-11-19, merge_threshold 0.80). The 3 isolated wrong merges are real-name pairs one letter apart (Frances/Francis, Marina/Marian, Kiran/Karan) that string similarity can't separate from typos.",
+    "isolated": {
+      "max_wrong_merges": 3,
+      "min_same_merged": 0.55
+    },
+    "crowded": {
+      "max_wrong_merges": 0,
+      "min_same_merged": 0.22
+    }
+  }
+}

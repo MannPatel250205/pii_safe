@@ -481,16 +481,17 @@ Tests for an integration whose framework is not installed are skipped. On small 
 
 | | Precision | Recall |
 |---|---|---|
-| Structured PII (email, IP, card, SSN, IBAN, phone, secrets, usernames …) | 1.00 | 1.00 |
+| Structured PII (email, IP, card, SSN, IBAN, phone, secrets, usernames, national IDs …) | 1.00 | 1.00 |
 | Person names, with spaCy (held-out set) | 1.00 | 1.00 |
 | Person names, rules only (held-out set) | 0.89 | 1.00 |
 
-Structured PII is reliable. Names improved a lot once the first-name and product lists were connected. Extend `src/piisafe/data/product_terms.txt` with your own tool names to avoid aliasing them. The datasets are small (71 lines, 8 held-out names), so treat these figures as a smoke test. See [DESIGN.md §4](docs/DESIGN.md#4-how-accurate-is-it-measured-v01).
+Structured PII is reliable. Names improved a lot once the first-name and product lists were connected. Extend `src/piisafe/data/product_terms.txt` with your own tool names to avoid aliasing them. The hand-labelled datasets are small (71 lines, 8 held-out names), so treat these figures as a smoke test. A generated 1,200-line set across five log sources scores 1.00 precision and 0.97 / 0.92 recall (structured / names, rules only), and CI fails if scores drop below `evaluation/thresholds.json`. See [DESIGN.md §4](docs/DESIGN.md#4-how-accurate-is-it-measured-v01).
 
 ## 11. Known limitations (v0.1)
 
 - English only.
-- Name detection in free text is rule-based plus spaCy-small. Lowercase names are found only if they are in the bundled first-name list, and Title-Case product names missing from the product list can still be aliased.
+- Passport, licence, bank-account and date-of-birth numbers are found only next to a keyword (`passport no:`, `DOB:`).
+- Name detection in free text is rule-based plus spaCy-small (or an optional GLiNER model, not yet benchmarked). Lowercase names are found only if they are in the bundled first-name list, and Title-Case product names missing from the product list can still be aliased.
 - `json` (whole-document) input is loaded into memory. `text`, `jsonl` and `csv` stream.
 - Phone detection depends on `settings.phone_regions` for numbers written without a `+country` prefix.
 - The dashboard signs in with pasted API keys. SSO (OIDC/SAML) is not implemented yet.

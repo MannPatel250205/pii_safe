@@ -594,7 +594,8 @@ def cmd_doctor(a: argparse.Namespace) -> int:
     pol = _load_policy(a)
     from piisafe.detection import NERDetector
 
-    ner = NERDetector(pol.settings.ner, pol.settings.spacy_model)
+    st = pol.settings
+    ner = NERDetector(st.ner, st.gliner_model if st.ner == "gliner" else st.spacy_model)
     status = f"[green]{ner.backend}[/]"
     if ner.spacy_error:
         status += f" [dim](spaCy unavailable: {ner.spacy_error[:80]})[/]"
@@ -776,7 +777,7 @@ def build_parser() -> argparse.ArgumentParser:
     detect.add_argument("--policy-id", help="force a named policy set from the policy file")
     detect.add_argument("-f", "--format", default="auto", choices=("auto", *FORMATS),
                         help="input format (default: from file extension)")
-    detect.add_argument("--ner", choices=("auto", "spacy", "heuristic", "off"),
+    detect.add_argument("--ner", choices=("auto", "spacy", "gliner", "heuristic", "off"),
                         help="override settings.ner for this run")
 
     keyopts = argparse.ArgumentParser(add_help=False)
@@ -857,7 +858,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("bench", help="latency & detection benchmark on synthetic logs")
     s.add_argument("-n", type=int, default=1000)
     s.add_argument("--seed", type=int, default=7)
-    s.add_argument("--ner", choices=("auto", "spacy", "heuristic", "off"))
+    s.add_argument("--ner", choices=("auto", "spacy", "gliner", "heuristic", "off"))
     s.add_argument("--json", action="store_true")
     s.set_defaults(func=cmd_bench)
 

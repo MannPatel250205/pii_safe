@@ -1,0 +1,65 @@
+{"a": "Kavishka Perera", "b": "Kavihska Perera", "same": true, "kind": "transposition"}
+{"a": "Kavishka", "b": "Kavihska", "same": true, "kind": "transposition"}
+{"a": "Michael Brown", "b": "Micheal Brown", "same": true, "kind": "transposition"}
+{"a": "Michael", "b": "Micheal", "same": true, "kind": "transposition"}
+{"a": "Priyanka Sharma", "b": "Priyanak Sharma", "same": true, "kind": "transposition"}
+{"a": "Siddharth Rao", "b": "Siddhatrh Rao", "same": true, "kind": "transposition"}
+{"a": "Olusegun Adeyemi", "b": "Olusegun Adeyemii", "same": true, "kind": "extra_letter"}
+{"a": "Alexander Petrov", "b": "Alexandr Petrov", "same": true, "kind": "missing_letter"}
+{"a": "Jonathan Clarke", "b": "Jonathon Clarke", "same": true, "kind": "vowel_swap"}
+{"a": "Katherine Lee", "b": "Katharine Lee", "same": true, "kind": "vowel_swap"}
+{"a": "Phillip Turner", "b": "Philip Turner", "same": true, "kind": "double_letter"}
+{"a": "Mohammed Al-Farsi", "b": "Mohamed Al-Farsi", "same": true, "kind": "double_letter"}
+{"a": "Rebecca Nolan", "b": "Rebeca Nolan", "same": true, "kind": "double_letter"}
+{"a": "Anastasia Ivanova", "b": "Anastasiya Ivanova", "same": true, "kind": "transliteration"}
+{"a": "Yevgeny Smirnov", "b": "Yevgeniy Smirnov", "same": true, "kind": "transliteration"}
+{"a": "Chaitanya Kulkarni", "b": "Chaitanya Kulkarny", "same": true, "kind": "transliteration"}
+{"a": "José Martínez", "b": "Jose Martinez", "same": true, "kind": "diacritics"}
+{"a": "Zoë Müller", "b": "Zoe Muller", "same": true, "kind": "diacritics"}
+{"a": "Raj Mehta", "b": "Raj", "same": true, "kind": "first_name_only"}
+{"a": "Kenji Sato", "b": "Kenji", "same": true, "kind": "first_name_only"}
+{"a": "Priya", "b": "Priya Sharma", "same": true, "kind": "full_name_later"}
+{"a": "Thandiwe", "b": "Thandiwe Mokoena", "same": true, "kind": "full_name_later"}
+{"a": "Kwame Mensah", "b": "kwame mensah", "same": true, "kind": "case"}
+{"a": "Fatima Zahra", "b": "FATIMA ZAHRA", "same": true, "kind": "case"}
+{"a": "Siobhan Kelly", "b": "Siobahn Kelly", "same": true, "kind": "transposition"}
+{"a": "Gabriela Souza", "b": "Grabiela Souza", "same": true, "kind": "transposition"}
+{"a": "Benjamin Okoro", "b": "Benjamn Okoro", "same": true, "kind": "missing_letter"}
+{"a": "Christopher Hale", "b": "Christoper Hale", "same": true, "kind": "missing_letter"}
+{"a": "Nikolai Volkov", "b": "Nikolay Volkov", "same": true, "kind": "transliteration"}
+{"a": "Aleksandra Nowak", "b": "Alexandra Nowak", "same": true, "kind": "transliteration"}
+{"a": "Robert Fields", "b": "Bob Fields", "same": true, "kind": "nickname"}
+{"a": "Elizabeth Shaw", "b": "Liz Shaw", "same": true, "kind": "nickname"}
+{"a": "William Grant", "b": "Bill Grant", "same": true, "kind": "nickname"}
+{"a": "Raj", "b": "Raju", "same": false, "kind": "short_similar"}
+{"a": "Raj", "b": "Ram", "same": false, "kind": "short_similar"}
+{"a": "Ana", "b": "Anna", "same": false, "kind": "short_similar"}
+{"a": "Sam", "b": "Pam", "same": false, "kind": "short_similar"}
+{"a": "Priya Sharma", "b": "Priya Nair", "same": false, "kind": "shared_first_name"}
+{"a": "Kenji Sato", "b": "Kenji Tanaka", "same": false, "kind": "shared_first_name"}
+{"a": "Carlos Garcia", "b": "Carlos Gomez", "same": false, "kind": "shared_first_name"}
+{"a": "Amit Patel", "b": "Sunita Patel", "same": false, "kind": "shared_surname"}
+{"a": "Kavishka Perera", "b": "Nadeesha Perera", "same": false, "kind": "shared_surname"}
+{"a": "John Smith", "b": "Jane Smith", "same": false, "kind": "shared_surname"}
+{"a": "Daniel Ortiz", "b": "Danielle Ortiz", "same": false, "kind": "gendered_variant"}
+{"a": "Francis Doyle", "b": "Frances Doyle", "same": false, "kind": "gendered_variant"}
+{"a": "Marina Lopez", "b": "Marian Lopez", "same": false, "kind": "different_name"}
+{"a": "Sarah Connor", "b": "Sara Conner", "same": false, "kind": "different_name"}
+{"a": "Brian Wells", "b": "Bryan Walls", "same": false, "kind": "different_name"}
+{"a": "Mohan Das", "b": "Rohan Das", "same": false, "kind": "different_name"}
+{"a": "Aarav Mehta", "b": "Arav Mehra", "same": false, "kind": "different_name"}
+{"a": "Olga Ivanova", "b": "Olga Ivanov", "same": false, "kind": "different_name"}
+{"a": "Lucas Silva", "b": "Lukas Silvia", "same": false, "kind": "different_name"}
+{"a": "Mei Chen", "b": "Wei Chen", "same": false, "kind": "different_name"}
+{"a": "Hana Kim", "b": "Hanna Lim", "same": false, "kind": "different_name"}
+{"a": "Erik Larsen", "b": "Erika Larsen", "same": false, "kind": "gendered_variant"}
+{"a": "Victoria Hughes", "b": "Victor Hughes", "same": false, "kind": "gendered_variant"}
+{"a": "Adrian Cole", "b": "Adriana Cole", "same": false, "kind": "gendered_variant"}
+{"a": "Stefan Novak", "b": "Stefanie Novak", "same": false, "kind": "gendered_variant"}
+{"a": "Neha Gupta", "b": "Sneha Gupta", "same": false, "kind": "different_name"}
+{"a": "Ravi Kumar", "b": "Ravi Kumaran", "same": false, "kind": "different_surname"}
+{"a": "Tom Baker", "b": "Tim Baker", "same": false, "kind": "different_name"}
+{"a": "Leon Fischer", "b": "Leona Fischer", "same": false, "kind": "gendered_variant"}
+{"a": "Ivan Petrov", "b": "Ivana Petrova", "same": false, "kind": "gendered_variant"}
+{"a": "Kiran Rao", "b": "Karan Rao", "same": false, "kind": "different_name"}
+{"a": "Shreya Iyer", "b": "Shreyas Iyer", "same": false, "kind": "gendered_variant"}

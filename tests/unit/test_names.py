@@ -79,3 +79,57 @@ def test_dropped_spacy_label_does_not_hide_rule_match():
     ner._spacy = FakeSpacy()  # type: ignore[assignment]
     found = ner.detect("Kenji Sato's account was locked")
     assert [(s.text, s.entity_type) for s in found] == [("Kenji Sato", "PERSON")]
+
+
+class _FakeGliner:
+    """Stands in for gliner.GLiNER: same from_pretrained / predict_entities interface."""
+
+    loaded: list[str] = []
+
+    @classmethod
+    def from_pretrained(cls, name):
+        cls.loaded.append(name)
+        return cls()
+
+    def predict_entities(self, text, labels, threshold=0.5):
+        assert labels == ["person"] and threshold >= 0.3
+        i = text.find("Zuzana Novak")
+        out = [{"start": i, "end": i + 12, "text": "Zuzana Novak", "label": "person", "score": 0.91}] if i >= 0 else []
+        j = text.find("Jenkins")
+        if j >= 0:  # a model false positive the product list must still remove
+            out.append({"start": j, "end": j + 7, "text": "Jenkins", "label": "person", "score": 0.6})
+        return out
+
+
+@pytest.fixture
+def fake_gliner(monkeypatch):
+    import sys
+    import types
+
+    monkeypatch.setitem(sys.modules, "gliner", types.SimpleNamespace(GLiNER=_FakeGliner))
+    _FakeGliner.loaded.clear()
+    return _FakeGliner
+
+
+def test_gliner_backend_adds_names_and_corroborates_weak_rules(fake_gliner):
+    ner = NERDetector("gliner", "some/model")
+    assert ner.backend == "gliner+heuristic" and fake_gliner.loaded == ["some/model"]
+    found = ner.detect("wire flagged, holder Zuzana Novak; deploy by Jenkins")
+    assert [(s.text, s.detector) for s in found] == [("Zuzana Novak", "ner:gliner")]
+
+
+def test_gliner_mode_from_policy(fake_gliner):
+    from piisafe import PIISafeGuard, Policy
+
+    pol = Policy.from_dict({"settings": {"ner": "gliner", "gliner_model": "org/pii-model"}})
+    g = PIISafeGuard(pol, ephemeral=True)
+    assert g.on_prompt("approved for Zuzana Novak").sanitised_text == "approved for USER_001"
+    assert fake_gliner.loaded == ["org/pii-model"]
+
+
+def test_gliner_missing_fails_loudly(monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "gliner", None)  # import raises ImportError
+    with pytest.raises(ImportError):
+        NERDetector("gliner")

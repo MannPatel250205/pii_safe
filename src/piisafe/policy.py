@@ -35,7 +35,8 @@ STORED_POLICY_VERSION_KEY = "policy.version"
 _KEYS = {
     "": {"version", "description", "default_action", "settings", "resolution", "aliases", "sensitivity",
          "allowlist", "custom_patterns", "field_hints", "entities", "policies"},
-    "settings": {"phone_regions", "ner", "spacy_model", "min_ner_score", "ner_types", "decode_encoded",
+    "settings": {"phone_regions", "ner", "spacy_model", "gliner_model", "min_ner_score", "ner_types",
+                 "decode_encoded",
                  "redaction_format", "mask_char"},
     "resolution": {"merge_threshold", "new_entity_threshold", "min_fuzzy_length", "link_identities"},
     "allowlist": {"values", "patterns"},
@@ -85,6 +86,7 @@ class Settings:
     phone_regions: list[str] = field(default_factory=lambda: ["US"])
     ner: str = "auto"
     spacy_model: str = "en_core_web_sm"
+    gliner_model: str = "urchade/gliner_small-v2.1"
     min_ner_score: float = 0.5
     ner_types: list[str] = field(default_factory=lambda: ["PERSON"])
     decode_encoded: bool = True
@@ -181,9 +183,10 @@ class Policy:
         regions = s.get("phone_regions", st.phone_regions)
         st.phone_regions = [str(r).upper() for r in (regions if isinstance(regions, list) else [regions])]
         st.ner = str(s.get("ner", st.ner)).lower()
-        if st.ner not in ("auto", "spacy", "heuristic", "off"):
-            errors.append(f"settings.ner: '{st.ner}' must be auto|spacy|heuristic|off")
+        if st.ner not in ("auto", "spacy", "gliner", "heuristic", "off"):
+            errors.append(f"settings.ner: '{st.ner}' must be auto|spacy|gliner|heuristic|off")
         st.spacy_model = str(s.get("spacy_model", st.spacy_model))
+        st.gliner_model = str(s.get("gliner_model", st.gliner_model))
         st.min_ner_score = float(s.get("min_ner_score", st.min_ner_score))
         nt = s.get("ner_types", st.ner_types)
         st.ner_types = [str(t) for t in (nt if isinstance(nt, list) else [nt])]

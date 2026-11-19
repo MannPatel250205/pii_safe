@@ -14,6 +14,8 @@ Status as of **2026-11-19**, version **0.1.0**.
 | Area | Supported |
 |---|---|
 | **Structured PII** (regex + validators) | Email, IPv4/IPv6, MAC address, credit card (Luhn + issuer check), US SSN, IBAN (mod-97), phone numbers (via Google `phonenumbers`), internal hostnames (`.local`, `.corp`, `.internal`, `.lan` …) |
+| **National IDs** | Aadhaar (Verhoeff check digit), PAN (entity-letter structure), UK National Insurance number (invalid prefixes excluded). Passport and driver's licence numbers next to a keyword (`passport no:`, `DL:`) |
+| **Financial and personal** | Bank account numbers next to a keyword (`a/c no.`, `account number`), dates of birth next to a keyword (`DOB:`, `born on`, a real date between 1900 and today), street addresses (`221B Baker Street`, `42 MG Road`) |
 | **Secrets** | JWTs, AWS keys, `Bearer …` tokens, `password=` / `token:` pairs, passwords in URLs, PEM headers |
 | **Usernames** | sshd formats (`for X from`, `Invalid user X`), `DOMAIN\user`, `user=` / `login:` keys, URL users |
 | **Person names** | Log-aware rules (honorifics, name + action verb, cue words, "X and Y" lists), possessives, unseen lowercase names from a ~980-name first-name list, a product/vendor deny-list, and optional spaCy `en_core_web_sm` corroboration |
@@ -71,6 +73,24 @@ Status as of **2026-11-19**, version **0.1.0**.
 | Person names, rules only (held-out set) | 0.89 | 1.00 |
 
 - **Before the name lists were connected** (2026-11-19), names scored 0.73 (spaCy) and 0.47 (rules only) precision on the same held-out set. That set has only 8 names, so the gain is real, but the exact figures are not reliable.
+
+| Synthetic set (1,200 generated lines) | Precision | Recall |
+|---|---|---|
+| Structured PII, all types | 1.00 | 0.97 |
+| Person names, rules only | 1.00 | 0.92 |
+| Person names, spaCy + rules | 1.00 | 0.86 |
+
+- The synthetic set (`evaluation/generate.py`) covers sshd, Windows events, web access logs, SIEM alerts and helpdesk tickets, with a third of the lines PII-free. Half its names are deliberately missing from the first-name list. Its labels are exact, but the templates were written alongside the detectors, so **expect real logs to score lower**. Its main job is catching regressions.
+- Remaining synthetic misses: bare usernames in prose (`uploaded by odlamini`), and names after a cue word when spaCy is on and the name is unknown to both spaCy and the list.
+
+**Identity resolution** (`evaluation/run_resolution_eval.py`, 65 labelled name pairs, 33 of them the same person):
+
+| Setting | Same person merged | Same person sent to review | Different people wrongly merged |
+|---|---|---|---|
+| Isolated (only the two names in the session) | 58% | 33% | 3 of 32 |
+| Crowded (three other people in between) | 24% | 58% | 0 of 32 |
+
+The 3 wrong merges are real-name pairs one letter apart (Frances/Francis, Marina/Marian, Kiran/Karan). A threshold sweep found no setting that removes them and still auto-merges typos: zero wrong merges needs `merge_threshold` 0.88 or higher, where only case, accent and first-name/full-name matches merge. Nicknames (Bob/Robert) are never merged.
 - **Performance:** about 0.7 ms per line at p50 and 7 ms at p99, or about 450 lines/s on one core with spaCy.
 - **Leak check:** in the benchmark, none of the known names or emails appeared in the output.
 
@@ -80,16 +100,18 @@ Status as of **2026-11-19**, version **0.1.0**.
 
 ### Accuracy
 
-- **Small evaluation set.** The figures come from 71 hand-labelled lines written by the author. Treat them as a smoke test, not a benchmark.
+- **No real-world labelled data yet.** The hand-labelled sets have 71 lines, and the 1,200-line synthetic set is generated from templates by the same author. There is still no set of real logs labelled by two people; see Phase 1 below.
 - **Names are the weak spot.**
   - Missed: lowercase names that aren't in `first_names.txt`, and a lowercase surname that isn't followed by a sentence-like word (`the kenji tanaka account` protects only `kenji`). A miss is a **leak**.
   - Over-flagged: Title-Case product names missing from `product_terms.txt`. Add your own tools there. This costs usefulness, not privacy.
-- **Resolution thresholds are hand-set**, not learned from data. Merge accuracy has not been measured at scale.
+- **Resolution can't tell some real names from typos.** Frances/Francis or Marina/Marian look exactly like typos and get merged in a quiet session (3 of 32 different-person pairs). In a busy session, most typos go to the review queue rather than merging. See "Measured quality" above.
 - **English only.**
 
 ### Coverage
 
-- No built-in detection for dates of birth, street addresses, passport numbers, or national IDs other than US SSN (Aadhaar, PAN, NI …), bank account numbers or driver's licences. Custom patterns can cover some of these.
+- Passport, driver's licence, bank account and date-of-birth numbers are found only next to a keyword. A bare `K1234567` or `1990-03-12` is not flagged, because without context it is indistinguishable from an order number or a timestamp.
+- Street addresses need a house number and a known street suffix (`Street`, `Road`, `Marg` …). Free-form addresses (`Flat 4, Rose Villa`) are only caught through a field hint (`address`, `street`).
+- No built-in detection for national IDs beyond US SSN, Aadhaar, PAN and UK NINO (for example Canadian SIN or EU national IDs). Custom patterns can cover them.
 - Phone numbers written without a `+country` prefix are found only for the regions listed in `settings.phone_regions` (default: US, IN, GB).
 - `json` (whole-document) input is loaded fully into memory. `text`, `jsonl` and `csv` stream.
 
@@ -113,15 +135,13 @@ Status as of **2026-11-19**, version **0.1.0**.
 
 ### Phase 1: make accuracy trustworthy (next)
 
-1. **A real labelled dataset:**
-   - 1–2k lines from sshd/auth logs, Windows events, web access logs, SIEM alerts and helpdesk tickets;
-   - labelled by two people;
-   - a frozen held-out split;
-   - a CI gate that fails if recall drops.
+1. **A real labelled dataset:** partly done on 2026-11-19.
+   - Done: a 1,200-line generated set across five log sources (`evaluation/generate.py`), and CI gates that fail if precision or recall drop below `evaluation/thresholds.json`.
+   - Still needed: 1–2k *real* lines labelled by two people, with a frozen held-out split. Only people with access to real logs can produce this.
 2. **Better name precision:** done on 2026-11-19 (first-name list, product deny-list, possessives, lowercase names).
-3. **Better name recall:** an optional transformer NER backend (e.g. GLiNER or a small fine-tuned BERT) behind the existing `NERDetector` interface.
-4. **Measured resolution:** a labelled set of same-person / different-person pairs, with thresholds fitted to the data.
-5. **More entity types:** date of birth in context, street addresses, passport / Aadhaar / PAN / NI numbers, bank accounts and driver's licences, each with positive and negative tests.
+3. **Better name recall:** the backend is done on 2026-11-19 (`ner: gliner`, `pip install 'piisafe[transformer]'`) but **not yet measured**: it was tested only against a stand-in model, because PyTorch doesn't fit the development VM. Next step: run `python evaluation/run_eval.py --ner gliner` on a machine with 4 GB+ free RAM and add its floors to `thresholds.json`.
+4. **Measured resolution:** done on 2026-11-19 (65 labelled pairs, a CI gate on the baseline). The thresholds were *measured* but not changed: see "Measured quality". Open decision: keep auto-merging typos (today), or merge only on exact/subset matches and send every typo to review.
+5. **More entity types:** done on 2026-11-19 (date of birth, street address, Aadhaar, PAN, passport, UK NINO, bank account, driver's licence), each with positive and negative tests.
 
 ### Phase 2: agent integrations
 
@@ -172,4 +192,4 @@ Status as of **2026-11-19**, version **0.1.0**.
 | Policies from an API or database | `Policy.from_dict()` with full validation |
 | New hooks | `guard.hooks.register(name, handler)` |
 | New detectors | A `PatternRecognizer`, or any detector that returns `Span`s |
-| Regression gates | `evaluation/run_eval.py`, `piisafe bench --json`, `piisafe scan --fail-over` |
+| Regression gates | `evaluation/run_eval.py --gate`, `evaluation/run_resolution_eval.py --gate`, `piisafe bench --json`, `piisafe scan --fail-over` |
